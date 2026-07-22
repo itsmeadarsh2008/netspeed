@@ -496,7 +496,23 @@ export default function App() {
                   {row('Jitter', testData.jitter > 0 ? `${testData.jitter.toFixed(1)} ms` : '--', dark)}
                   {testData.phase !== 'idle' && row('Packet Loss', testData.packetLoss > 0 ? `${testData.packetLoss.toFixed(1)}%` : '0%', dark)}
                   {testData.loadedLatency > 0 && row('Loaded Latency', `${testData.loadedLatency.toFixed(1)} ms`, dark)}
-                  {testData.serverName && row('Server', testData.serverName, dark)}
+                  {testData.serverName && (() => {
+                    const paren = testData.serverName.indexOf(' (');
+                    if (paren !== -1) {
+                      const main = testData.serverName.slice(0, paren);
+                      const sub = testData.serverName.slice(paren);
+                      return (
+                        <div className="flex items-center justify-between py-1.5">
+                          <span className={`text-xs ${dark ? 'text-white/35' : 'text-gray-500'} tracking-wider transition-colors duration-200`}>Server</span>
+                          <div className="text-right">
+                            <div className={`text-sm font-medium ${dark ? 'text-white/70' : 'text-gray-700'} tabular-nums tracking-tight transition-all duration-200`}>{main}</div>
+                            <div className={`text-[10px] leading-tight -mt-0.5 ${dark ? 'text-white/30' : 'text-gray-400'}`}>{sub}</div>
+                          </div>
+                        </div>
+                      );
+                    }
+                    return row('Server', testData.serverName, dark);
+                  })()}
                 </div>
 
                 {isComplete && (
