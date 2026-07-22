@@ -4,7 +4,7 @@ import { Activity, Globe, Moon, Monitor, Search, Settings, Sun, X } from 'lucide
 import Gauge from './components/Gauge';
 import SpeedGraph from './components/SpeedGraph';
 import type { TestPhase, SpeedtestUpdate, SpeedtestResult, ProviderServer, SpeedtestSettings } from './lib/speedtest';
-import { startSpeedtest, abortSpeedtest, getProviders, getServersForProvider, getUserLocation, rankServersByGeo } from './lib/speedtest';
+import { startSpeedtest, abortSpeedtest, getProviders, getServersForProvider, pickBestServer } from './lib/speedtest';
 import { loadSettings, saveSettings, DEFAULT_SETTINGS } from './lib/settings';
 import { fetchConnectionInfo, type ConnectionInfo } from './lib/connection';
 
@@ -106,18 +106,15 @@ export default function App() {
     setServersLoading(true);
     setServerSearch('');
     const list = await getServersForProvider(pid);
+    setServers(list);
     if (list.length > 0) {
-      let sorted = list;
       if (settingsRef.current.autoSelectServer && list.length > 1) {
-        try {
-          const userLoc = await getUserLocation();
-          sorted = rankServersByGeo(list, userLoc.lat, userLoc.lon);
-        } catch {}
+        const best = await pickBestServer(list, pid);
+        setSelectedServer(best);
+      } else {
+        setSelectedServer(list[0]);
       }
-      setServers(sorted);
-      setSelectedServer(sorted[0]);
     } else {
-      setServers([]);
       setSelectedServer(null);
     }
     setServersLoading(false);
