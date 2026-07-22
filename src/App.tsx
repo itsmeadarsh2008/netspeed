@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Button, Card, Switch } from '@heroui/react';
-import { Activity, Download, Eye, EyeOff, Globe, Moon, Monitor, Search, Settings, Share2, Sun, X } from 'lucide-react';
+import { Activity, ArrowDown, ArrowUp, Clock, Download, Eye, EyeOff, Globe, GaugeIcon, Monitor, Moon, Search, Server, Settings, Share2, Sun, WifiOff, X } from 'lucide-react';
 import { toPng } from 'html-to-image';
 import Gauge from './components/Gauge';
 import SpeedGraph from './components/SpeedGraph';
@@ -28,12 +28,31 @@ function fmtSpeedBytes(value: number): string {
   return (mbps / 1000).toFixed(1);
 }
 
-const row = (label: string, value: string, dark: boolean) => (
+const row = (label: React.ReactNode, value: string, dark: boolean, color?: string) => (
   <div className="flex items-center justify-between py-1.5">
-    <span className={`text-xs ${dark ? 'text-white/35' : 'text-gray-500'} tracking-wider transition-colors duration-200`}>{label}</span>
-    <span className={`text-sm font-medium ${dark ? 'text-white/70' : 'text-gray-700'} tabular-nums tracking-tight transition-all duration-200`}>{value}</span>
+    <span className={`text-xs ${dark ? 'text-white/35' : 'text-gray-500'} tracking-wider flex items-center gap-1 transition-colors duration-200`}>{label}</span>
+    <span className={`text-sm font-medium tabular-nums tracking-tight transition-all duration-200 ${color ? color : dark ? 'text-white/70' : 'text-gray-700'}`}>{value}</span>
   </div>
 );
+
+const pingColor = (ping: number): string => {
+  if (ping <= 0) return 'dark:text-green-400';
+  if (ping < 50) return 'dark:text-green-400';
+  if (ping < 100) return 'dark:text-lime-400';
+  if (ping < 150) return 'dark:text-yellow-400';
+  if (ping < 200) return 'dark:text-orange-400';
+  return 'dark:text-red-400';
+};
+
+const pingLabel = (ping: number): string => {
+  if (ping <= 0) return '';
+  if (ping < 20) return 'ideal';
+  if (ping < 50) return 'excellent';
+  if (ping < 100) return 'decent';
+  if (ping < 150) return 'moderate';
+  if (ping < 200) return 'high';
+  return 'very high';
+};
 
 const sectionDivider = (dark: boolean) => (
   `my-0.5 border-t ${dark ? 'border-white/[0.04]' : 'border-gray-200'}`
@@ -224,6 +243,16 @@ export default function App() {
 
   const isActive = testData.phase === 'discovering' || testData.phase === 'ping' || testData.phase === 'download' || testData.phase === 'upload';
 
+  const autoStarted = useRef(false);
+
+  useEffect(() => {
+    if (autoStarted.current) return;
+    if (!selectedServer || serversLoading) return;
+    if (isActive) return;
+    autoStarted.current = true;
+    handleStart();
+  }, [selectedServer, serversLoading, isActive, handleStart]);
+
   const unit = (v: number) => unitMbps ? v : v / 8;
   const unitLabel = unitMbps ? 'Mbps' : 'MB/s';
 
@@ -294,7 +323,9 @@ export default function App() {
   }, [isComplete, testData]);
 
   return (
-    <div className={`min-h-screen ${dark ? 'dark bg-[#0a0a0f]' : 'bg-gray-50'} antialiased font-sans transition-colors`}>
+    <div
+      className={`min-h-screen ${dark ? 'dark bg-[#0a0a0f]' : 'bg-gray-50'} antialiased font-sans transition-colors`}
+    >
       {showSettings && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-3 sm:p-4" onClick={() => setShowSettings(false)}>
           <Card variant={dark ? 'shadow' : 'flat'} className={`w-full max-w-xs sm:max-w-sm max-h-[90vh] overflow-y-auto ${dark ? 'bg-[#12121a]' : 'bg-white'}`} onClick={e => e.stopPropagation()}>
@@ -398,7 +429,7 @@ export default function App() {
             <div className={`flex items-center gap-2 px-3 py-2.5 text-xs font-medium rounded-xl transition-colors ${
               dark ? 'bg-white/[0.03] text-white/70 border border-white/[0.06]' : 'bg-gray-100 text-gray-700 border border-gray-200'
             } focus-within:ring-1 focus-within:ring-accent`}>
-              <Search size={13} className={`shrink-0 ${dark ? 'text-white/25' : 'text-gray-400'}`} />
+              <Search size={14} strokeWidth={2.5} className={`shrink-0 ${dark ? 'text-white/25' : 'text-gray-400'}`} />
               <input
                 type="text"
                 value={serverSearch}
@@ -490,12 +521,12 @@ export default function App() {
                   )}
                 </div>
                 <div className="px-4 pb-4">
-                  {row('Download', testData.downloadSpeed > 0 ? `${fmtSpeed(unit(testData.downloadSpeed))} ${unitLabel}` : '--', dark)}
-                  {row('Upload', testData.uploadSpeed > 0 ? `${fmtSpeed(unit(testData.uploadSpeed))} ${unitLabel}` : '--', dark)}
-                  {row('Ping', testData.ping > 0 ? `${testData.ping.toFixed(1)} ms` : '--', dark)}
-                  {row('Jitter', testData.jitter > 0 ? `${testData.jitter.toFixed(1)} ms` : '--', dark)}
-                  {testData.phase !== 'idle' && row('Packet Loss', testData.packetLoss > 0 ? `${testData.packetLoss.toFixed(1)}%` : '0%', dark)}
-                  {testData.loadedLatency > 0 && row('Loaded Latency', `${testData.loadedLatency.toFixed(1)} ms`, dark)}
+                  {row(<><ArrowDown size={15} strokeWidth={3} /> Download</>, testData.downloadSpeed > 0 ? `${fmtSpeed(unit(testData.downloadSpeed))} ${unitLabel}` : '--', dark, 'dark:text-cyan-400')}
+                  {row(<><ArrowUp size={15} strokeWidth={3} /> Upload</>, testData.uploadSpeed > 0 ? `${fmtSpeed(unit(testData.uploadSpeed))} ${unitLabel}` : '--', dark, 'dark:text-green-400')}
+                  {row(<><Activity size={15} strokeWidth={3} /> Ping</>, testData.ping > 0 ? `${testData.ping.toFixed(1)} ms (${pingLabel(testData.ping)})` : '--', dark, pingColor(testData.ping))}
+                  {row(<><GaugeIcon size={15} strokeWidth={3} /> Jitter</>, testData.jitter > 0 ? `${testData.jitter.toFixed(1)} ms` : '--', dark, 'dark:text-purple-400')}
+                  {testData.phase !== 'idle' && row(<><WifiOff size={15} strokeWidth={3} /> Packet Loss</>, testData.packetLoss > 0 ? `${testData.packetLoss.toFixed(1)}%` : '0%', dark, 'dark:text-yellow-400')}
+                  {testData.loadedLatency > 0 && row(<><Clock size={15} strokeWidth={3} /> Loaded Latency</>, `${testData.loadedLatency.toFixed(1)} ms`, dark, 'dark:text-teal-400')}
                   {testData.serverName && (() => {
                     const paren = testData.serverName.indexOf(' (');
                     if (paren !== -1) {
@@ -503,7 +534,7 @@ export default function App() {
                       const main = testData.serverName.slice(paren + 2, -1);
                       return (
                         <div className="flex items-center justify-between py-1.5">
-                          <span className={`text-xs ${dark ? 'text-white/35' : 'text-gray-500'} tracking-wider transition-colors duration-200`}>Server</span>
+                          <span className={`text-xs ${dark ? 'text-white/35' : 'text-gray-500'} tracking-wider flex items-center gap-1 transition-colors duration-200`}><Server size={15} strokeWidth={2.5} /> Server</span>
                           <div className="text-right">
                             <div className={`text-sm font-medium ${dark ? 'text-white/70' : 'text-gray-700'} tabular-nums tracking-tight transition-all duration-200`}>{main}</div>
                             <div className={`text-[10px] leading-tight -mt-0.5 ${dark ? 'text-white/30' : 'text-gray-400'}`}>{sub}</div>
@@ -511,7 +542,7 @@ export default function App() {
                         </div>
                       );
                     }
-                    return row('Server', testData.serverName, dark);
+                    return row(<><Server size={15} strokeWidth={3} /> Server</>, testData.serverName, dark);
                   })()}
                 </div>
 
@@ -524,7 +555,7 @@ export default function App() {
                         dark ? 'text-white/40 hover:text-white/70' : 'text-gray-400 hover:text-gray-700'
                       }`}
                     >
-                      <Share2 size={12} />
+                      <Share2 size={13} strokeWidth={2.5} />
                       {copied ? 'Copied to Clipboard' : 'Share Results'}
                     </button>
                   </div>
@@ -535,20 +566,20 @@ export default function App() {
                     <div className={`mx-2 border-t ${dark ? 'border-white/[0.04]' : 'border-gray-200'}`} />
                     <div className="px-4 pb-4 pt-3">
                       <div className="flex items-center gap-1.5 mb-2">
-                        <Globe size={11} className={dark ? 'text-white/25' : 'text-gray-400'} />
+                        <Globe size={14} strokeWidth={2.5} className={dark ? 'text-white/25' : 'text-gray-400'} />
                         <span className={`text-[10px] font-semibold tracking-widest uppercase ${dark ? 'text-white/25' : 'text-gray-400'}`}>Connection</span>
                         <button
                           onClick={() => setSensitiveVisible(prev => !prev)}
                           className={`ml-auto p-0.5 ${dark ? 'text-white/20 hover:text-white/50' : 'text-gray-400 hover:text-gray-600'}`}
                           title={sensitiveVisible ? 'Hide sensitive info' : 'Show sensitive info'}
                         >
-                          {sensitiveVisible ? <EyeOff size={12} /> : <Eye size={12} />}
+                          {sensitiveVisible ? <EyeOff size={13} strokeWidth={2.5} /> : <Eye size={13} strokeWidth={2.5} />}
                         </button>
                       </div>
-                      {row('IP Address', sensitiveVisible ? connInfo.ip : maskIp(connInfo.ip), dark)}
-                      {connInfo.asn && row('ASN', connInfo.asn, dark)}
-                      {row('ISP', connInfo.isp, dark)}
-                      {(connInfo.city || connInfo.country) && row('Location', [connInfo.city, connInfo.region, connInfo.country].filter(Boolean).join(', '), dark)}
+                      {row(<><Globe size={15} strokeWidth={3} /> IP Address</>, sensitiveVisible ? connInfo.ip : maskIp(connInfo.ip), dark)}
+                      {connInfo.asn && row(<>ASN</>, connInfo.asn, dark)}
+                      {row(<>ISP</>, connInfo.isp, dark)}
+                      {(connInfo.city || connInfo.country) && row(<>Location</>, [connInfo.city, connInfo.region, connInfo.country].filter(Boolean).join(', '), dark)}
                       {dnsInfo && (() => {
                         const dnsValue = `${dnsInfo.provider} (${sensitiveVisible ? dnsInfo.ip : maskIp(dnsInfo.ip)})`;
                         const paren = dnsValue.indexOf(' (');
@@ -557,7 +588,7 @@ export default function App() {
                           const main = dnsValue.slice(paren + 2, -1);
                           return (
                             <div className="flex items-center justify-between py-1.5">
-                              <span className={`text-xs ${dark ? 'text-white/35' : 'text-gray-500'} tracking-wider transition-colors duration-200`}>DNS</span>
+                              <span className={`text-xs ${dark ? 'text-white/35' : 'text-gray-500'} tracking-wider flex items-center gap-1 transition-colors duration-200`}><Search size={15} strokeWidth={3} /> DNS</span>
                               <div className="text-right">
                                 <div className={`text-sm font-medium ${dark ? 'text-white/70' : 'text-gray-700'} tabular-nums tracking-tight transition-all duration-200`}>{main}</div>
                                 <div className={`text-[10px] leading-tight -mt-0.5 ${dark ? 'text-white/30' : 'text-gray-400'}`}>{sub}</div>
@@ -565,18 +596,18 @@ export default function App() {
                             </div>
                           );
                         }
-                        return row('DNS', dnsValue, dark);
+                        return row(<><Search size={15} strokeWidth={3} /> DNS</>, dnsValue, dark);
                       })()}
                     </div>
 
                     <div className={`mx-2 border-t ${dark ? 'border-white/[0.04]' : 'border-gray-200'}`} />
                     <div className="px-4 pb-4 pt-3">
                       <div className="flex items-center gap-1.5 mb-2">
-                        <Monitor size={11} className={dark ? 'text-white/25' : 'text-gray-400'} />
+                        <Monitor size={14} strokeWidth={2.5} className={dark ? 'text-white/25' : 'text-gray-400'} />
                         <span className={`text-[10px] font-semibold tracking-widest uppercase ${dark ? 'text-white/25' : 'text-gray-400'}`}>Client</span>
                       </div>
-                      {row('Browser', connInfo.browser, dark)}
-                      {row('Platform', connInfo.platform, dark)}
+                      {row(<><Monitor size={15} strokeWidth={3} /> Browser</>, connInfo.browser, dark)}
+                      {row(<>Platform</>, connInfo.platform, dark)}
                     </div>
 
                     {(connInfo.effectiveType !== 'Unknown' || connInfo.rtt > 0) && (
@@ -584,13 +615,13 @@ export default function App() {
                         <div className={`mx-2 border-t ${dark ? 'border-white/[0.04]' : 'border-gray-200'}`} />
                         <div className="px-4 pb-4 pt-3">
                           <div className="flex items-center gap-1.5 mb-2">
-                            <Activity size={11} className={dark ? 'text-white/25' : 'text-gray-400'} />
+                            <Activity size={14} strokeWidth={2.5} className={dark ? 'text-white/25' : 'text-gray-400'} />
                             <span className={`text-[10px] font-semibold tracking-widest uppercase ${dark ? 'text-white/25' : 'text-gray-400'}`}>Network</span>
                           </div>
-                          {connInfo.connectionType !== 'Unknown' && row('Connection', fmtConnType(connInfo.connectionType), dark)}
-                          {connInfo.effectiveType !== 'Unknown' && row('Effective Type', connInfo.effectiveType.toUpperCase(), dark)}
-                          {connInfo.rtt > 0 && row('Browser RTT', `${connInfo.rtt} ms`, dark)}
-                          {connInfo.downlink > 0 && row('Browser Downlink', fmtDownlink(connInfo.downlink), dark)}
+                          {connInfo.connectionType !== 'Unknown' && row(<>Connection</>, fmtConnType(connInfo.connectionType), dark)}
+                          {connInfo.effectiveType !== 'Unknown' && row(<>Effective Type</>, connInfo.effectiveType.toUpperCase(), dark)}
+                          {connInfo.rtt > 0 && row(<>Browser RTT</>, `${connInfo.rtt} ms`, dark)}
+                          {connInfo.downlink > 0 && row(<>Browser Downlink</>, fmtDownlink(connInfo.downlink), dark)}
                         </div>
                       </>
                     )}

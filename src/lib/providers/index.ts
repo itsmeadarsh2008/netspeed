@@ -4,10 +4,12 @@ export type { ProviderServer, SpeedtestProvider } from './types';
 
 import { cloudflareProvider } from './cloudflare';
 import { ooklaProvider } from './ookla';
+import { librespeedProvider } from './librespeed';
 
 export const ALL_PROVIDERS: SpeedtestProvider[] = [
   cloudflareProvider,
   ooklaProvider,
+  librespeedProvider,
 ];
 
 export function getProvider(id: string): SpeedtestProvider | undefined {
