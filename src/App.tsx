@@ -44,6 +44,16 @@ const pingColor = (ping: number): string => {
   return 'dark:text-red-400';
 };
 
+const pingLabel = (ping: number): string => {
+  if (ping <= 0) return '';
+  if (ping < 20) return 'ideal';
+  if (ping < 50) return 'excellent';
+  if (ping < 100) return 'decent';
+  if (ping < 150) return 'moderate';
+  if (ping < 200) return 'high';
+  return 'very high';
+};
+
 const sectionDivider = (dark: boolean) => (
   `my-0.5 border-t ${dark ? 'border-white/[0.04]' : 'border-gray-200'}`
 );
@@ -500,10 +510,9 @@ export default function App() {
                 </div>
                 <div className="px-4 pb-4">
                   {row(<><ArrowDown size={13} /> Download</>, testData.downloadSpeed > 0 ? `${fmtSpeed(unit(testData.downloadSpeed))} ${unitLabel}` : '--', dark, 'dark:text-cyan-400')}
-                  {row(<><ArrowUp size={13} /> Upload</>, testData.uploadSpeed > 0 ? `${fmtSpeed(unit(testData.uploadSpeed))} ${unitLabel}` : '--', dark, 'dark:text-amber-400')}
-                  {row(<><Activity size={13} /> Ping</>, testData.ping > 0 ? `${testData.ping.toFixed(1)} ms` : '--', dark, pingColor(testData.ping))}
-                  {row(<><GaugeIcon size={13} /> Jitter</>, testData.jitter > 0 ? `${testData.jitter.toFixed(1)} ms` : '--', dark, 'dark:text-purple-400')}
-                  {testData.phase !== 'idle' && row(<><WifiOff size={13} /> Packet Loss</>, testData.packetLoss > 0 ? `${testData.packetLoss.toFixed(1)}%` : '0%', dark, 'dark:text-rose-400')}
+                  {row(<><ArrowUp size={13} /> Upload</>, testData.uploadSpeed > 0 ? `${fmtSpeed(unit(testData.uploadSpeed))} ${unitLabel}` : '--', dark, 'dark:text-green-400')}
+                  {row(<><Activity size={13} /> Ping</>, testData.ping > 0 ? `${testData.ping.toFixed(1)} ms (${pingLabel(testData.ping)})` : '--', dark, pingColor(testData.ping))}
+                  {testData.phase !== 'idle' && row(<><WifiOff size={13} /> Packet Loss</>, testData.packetLoss > 0 ? `${testData.packetLoss.toFixed(1)}%` : '0%', dark, 'dark:text-yellow-400')}
                   {testData.loadedLatency > 0 && row(<><Clock size={13} /> Loaded Latency</>, `${testData.loadedLatency.toFixed(1)} ms`, dark, 'dark:text-yellow-400')}
                   {testData.serverName && (() => {
                     const paren = testData.serverName.indexOf(' (');
