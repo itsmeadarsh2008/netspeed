@@ -261,6 +261,19 @@ async function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
   ]);
 }
 
+async function measureLoadedPingOokla(host: string): Promise<number> {
+  try {
+    const ws = await withTimeout(connectOokla(host), 3000);
+    const start = performance.now();
+    ws.send(`PING ${Date.now()}_l`);
+    await withTimeout(waitForText(ws, AbortSignal.timeout(3000)), 3000);
+    safeClose(ws);
+    return performance.now() - start;
+  } catch {
+    return 0;
+  }
+}
+
 async function runDownloadStream(host: string, onBytes: (n: number) => void, signal: AbortSignal, chunkSize = 5_000_000): Promise<void> {
   let ws: WebSocket | null = null;
   try {
@@ -361,8 +374,10 @@ export const ooklaProvider: SpeedtestProvider = {
     const jitter = pingRes?.jitter ?? 0;
     const packetLoss = pingRes?.packetLoss ?? 0;
     emit('ping', { ping, jitter, packetLoss, pingProgress: 1, serverName: server.name });
-    if (signal.aborted) return { download: 0, upload: 0, ping, jitter, packetLoss };
+    if (signal.aborted) return { download: 0, upload: 0, ping, jitter, packetLoss, loadedLatency: 0 };
 
+    let loadedLatency = 0;
+    let pingTick = 0;
     {
       const streamSignal = new AbortController();
       let totalBytes = 0;
@@ -379,6 +394,10 @@ export const ooklaProvider: SpeedtestProvider = {
           const mb = totalBytes / 1_000_000;
           const speed = elapsed > 0 ? (mb * 8) / elapsed : 0;
           dlSamples.push(speed);
+          pingTick++;
+          if (pingTick % 4 === 0) {
+            measureLoadedPingOokla(host).then(l => { if (l > loadedLatency) loadedLatency = l; });
+          }
           emit('download', { downloadSpeed: speed, dlProgress: Math.min(elapsed / (dlDuration / 1000), 1), ping, jitter, packetLoss, serverName: server.name });
           if (elapsed >= dlDuration / 1000) { streamSignal.abort(); clearInterval(interval); resolve(); }
         }, 200);
@@ -386,8 +405,9 @@ export const ooklaProvider: SpeedtestProvider = {
       await Promise.all(streams);
     }
 
-    if (signal.aborted) return { download: dlSamples[dlSamples.length - 1] || 0, upload: 0, ping, jitter, packetLoss };
+    if (signal.aborted) return { download: dlSamples[dlSamples.length - 1] || 0, upload: 0, ping, jitter, packetLoss, loadedLatency };
 
+    pingTick = 0;
     {
       const streamSignal = new AbortController();
       let totalBytes = 0;
@@ -404,6 +424,10 @@ export const ooklaProvider: SpeedtestProvider = {
           const mb = totalBytes / 1_000_000;
           const speed = elapsed > 0 ? (mb * 8) / elapsed : 0;
           ulSamples.push(speed);
+          pingTick++;
+          if (pingTick % 4 === 0) {
+            measureLoadedPingOokla(host).then(l => { if (l > loadedLatency) loadedLatency = l; });
+          }
           emit('upload', { uploadSpeed: speed, ulProgress: Math.min(elapsed / (ulDuration / 1000), 1), ping, jitter, packetLoss, serverName: server.name });
           if (elapsed >= ulDuration / 1000) { streamSignal.abort(); clearInterval(interval); resolve(); }
         }, 200);
@@ -415,6 +439,6 @@ export const ooklaProvider: SpeedtestProvider = {
     const finalUl = ulSamples.length > 0 ? ulSamples[ulSamples.length - 1] : 0;
 
     emit('complete', { downloadSpeed: finalDl, uploadSpeed: finalUl, ping, jitter, packetLoss, serverName: server.name });
-    return { download: finalDl, upload: finalUl, ping, jitter, packetLoss };
+    return { download: finalDl, upload: finalUl, ping, jitter, packetLoss, loadedLatency };
   },
 };

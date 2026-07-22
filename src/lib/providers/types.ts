@@ -21,6 +21,7 @@ export interface SpeedtestResult {
   ping: number;
   jitter: number;
   packetLoss: number;
+  loadedLatency: number;
 }
 
 export interface ProviderServer {

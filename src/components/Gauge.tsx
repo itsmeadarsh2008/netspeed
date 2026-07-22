@@ -5,6 +5,7 @@ interface GaugeProps {
   phase: TestPhase;
   speed: number;
   dark: boolean;
+  unit: string;
 }
 
 const phaseLabel: Record<TestPhase, string> = {
@@ -28,7 +29,7 @@ function accentColor(speed: number, dark: boolean): string {
   return dark ? 'text-gray-500/60' : 'text-gray-400/60';
 }
 
-export default function Gauge({ phase, speed, dark }: GaugeProps) {
+export default function Gauge({ phase, speed, dark, unit }: GaugeProps) {
   const isActive = phase === 'discovering' || phase === 'ping' || phase === 'download' || phase === 'upload';
   const isIdle = phase === 'idle';
   const isComplete = phase === 'complete';
@@ -59,7 +60,7 @@ export default function Gauge({ phase, speed, dark }: GaugeProps) {
         )}
       </span>
       <span className={`text-base sm:text-lg font-medium tracking-widest mt-1 transition-all duration-200 ease-out ${subColor}`}>
-        Mbps
+        {unit}
       </span>
       <span className={`text-xs sm:text-sm font-semibold tracking-wider mt-2 uppercase transition-all duration-200 ease-out ${labelColor}`}>
         {phaseLabel[phase]}

@@ -107,7 +107,7 @@ export const cloudflareProvider: SpeedtestProvider = {
     const pings: number[] = [];
     let pingFailures = 0;
     for (let i = 0; i < PING_SAMPLES; i++) {
-      if (signal.aborted) return { download: 0, upload: 0, ping: 0, jitter: 0, packetLoss: 0 };
+      if (signal.aborted) return { download: 0, upload: 0, ping: 0, jitter: 0, packetLoss: 0, loadedLatency: 0 };
       const start = performance.now();
       try {
         await fetch(`${BASE}/__down?bytes=1`, { signal, cache: 'no-store' });
@@ -128,9 +128,11 @@ export const cloudflareProvider: SpeedtestProvider = {
     const packetLoss = PING_SAMPLES > 0 ? (pingFailures / PING_SAMPLES) * 100 : 0;
 
     emit('ping', { ping, jitter, packetLoss, pingProgress: 1, serverName: server.name });
-    if (signal.aborted) return { download: 0, upload: 0, ping, jitter, packetLoss };
+    if (signal.aborted) return { download: 0, upload: 0, ping, jitter, packetLoss, loadedLatency: 0 };
 
     // --- Download ---
+    let loadedLatency = 0;
+    let pingTick = 0;
     {
       const streamSignal = new AbortController();
       let totalBytes = 0;
@@ -153,6 +155,12 @@ export const cloudflareProvider: SpeedtestProvider = {
           const mb = totalBytes / 1_000_000;
           const speed = elapsed > 0 ? (mb * 8) / elapsed : 0;
           dlSamples.push(speed);
+          pingTick++;
+          if (pingTick % 4 === 0) {
+            fetch(`${BASE}/__down?bytes=1`, { cache: 'no-store', signal: AbortSignal.timeout(2000) })
+              .then(() => { loadedLatency = Math.max(loadedLatency, performance.now() - startTime - elapsed * 1000); })
+              .catch(() => {});
+          }
           emit('download', {
             downloadSpeed: speed,
             dlProgress: Math.min(elapsed / (DL_DURATION / 1000), 1),
@@ -169,9 +177,10 @@ export const cloudflareProvider: SpeedtestProvider = {
       await Promise.all(streams);
     }
 
-    if (signal.aborted) return { download: dlSamples[dlSamples.length - 1] || 0, upload: 0, ping, jitter, packetLoss };
+    if (signal.aborted) return { download: dlSamples[dlSamples.length - 1] || 0, upload: 0, ping, jitter, packetLoss, loadedLatency };
 
     // --- Upload ---
+    pingTick = 0;
     {
       const streamSignal = new AbortController();
       let totalBytes = 0;
@@ -194,6 +203,12 @@ export const cloudflareProvider: SpeedtestProvider = {
           const mb = totalBytes / 1_000_000;
           const speed = elapsed > 0 ? (mb * 8) / elapsed : 0;
           ulSamples.push(speed);
+          pingTick++;
+          if (pingTick % 4 === 0) {
+            fetch(`${BASE}/__down?bytes=1`, { cache: 'no-store', signal: AbortSignal.timeout(2000) })
+              .then(() => { loadedLatency = Math.max(loadedLatency, performance.now() - startTime - elapsed * 1000); })
+              .catch(() => {});
+          }
           emit('upload', {
             uploadSpeed: speed,
             ulProgress: Math.min(elapsed / (UL_DURATION / 1000), 1),
@@ -220,6 +235,6 @@ export const cloudflareProvider: SpeedtestProvider = {
       serverName: server.name,
     });
 
-    return { download: finalDl, upload: finalUl, ping, jitter, packetLoss };
+    return { download: finalDl, upload: finalUl, ping, jitter, packetLoss, loadedLatency };
   },
 };

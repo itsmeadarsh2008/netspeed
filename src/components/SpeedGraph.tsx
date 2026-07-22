@@ -3,6 +3,7 @@ interface SpeedGraphProps {
   upload: number[];
   packetLoss: number;
   dark?: boolean;
+  unit?: string;
 }
 
 const WIDTH = 600;
@@ -29,13 +30,14 @@ function pickCeiling(values: number[]): number {
   return nice * order * 1.15;
 }
 
-function fmtLabel(v: number): string {
-  if (v >= 1000) return (v / 1000).toFixed(v >= 10000 ? 0 : 1) + ' Gbps';
-  if (v >= 1) return Math.round(v) + ' Mbps';
-  return v.toFixed(1) + ' Mbps';
+function fmtLabel(v: number, unit: string): string {
+  const suffix = unit === 'MB/s' ? 'B/s' : 'bps';
+  if (v >= 1000) return (v / 1000).toFixed(v >= 10000 ? 0 : 1) + ' G' + suffix;
+  if (v >= 1) return Math.round(v) + ' ' + unit;
+  return v.toFixed(1) + ' ' + unit;
 }
 
-export default function SpeedGraph({ download, upload, packetLoss, dark = true }: SpeedGraphProps) {
+export default function SpeedGraph({ download, upload, packetLoss, dark = true, unit = 'Mbps' }: SpeedGraphProps) {
   const allValues = [...download, ...upload];
   const ceiling = allValues.length > 0 ? pickCeiling(allValues) : 1000;
   const markCount = 5;
@@ -54,7 +56,7 @@ export default function SpeedGraph({ download, upload, packetLoss, dark = true }
   return (
     <div className="relative h-full w-full flex items-stretch">
       <div className={`flex flex-col justify-between py-1 pr-2 text-[9px] font-medium tabular-nums tracking-tight ${labelColor} pointer-events-none select-none`}>
-        {marks.map(m => <span key={m}>{fmtLabel(m)}</span>)}
+        {marks.map(m => <span key={m}>{fmtLabel(m, unit)}</span>)}
       </div>
       <div className="flex-1 relative min-w-0">
         <svg viewBox={`0 0 ${WIDTH} ${HEIGHT}`} preserveAspectRatio="none" aria-hidden="true" className="h-full w-full">

@@ -15,6 +15,7 @@
     "@heroui/styles": "^3.0.4",
     "@number-flow/react": "^0.6.2",
     "express": "^4.21.0",
+    "html-to-image": "^1.11.13",
     "lucide-react": "^1.25.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
