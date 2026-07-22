@@ -243,6 +243,33 @@ export default function App() {
 
   const isActive = testData.phase === 'discovering' || testData.phase === 'ping' || testData.phase === 'download' || testData.phase === 'upload';
 
+  const [pullProgress, setPullProgress] = useState(0);
+  const pullStartY = useRef(0);
+  const isPulling = useRef(false);
+  const pullThreshold = 60;
+
+  const handlePullStart = useCallback((clientY: number) => {
+    if (window.scrollY > 0) return;
+    if (isActive) return;
+    pullStartY.current = clientY;
+    isPulling.current = true;
+  }, [isActive]);
+
+  const handlePullMove = useCallback((clientY: number) => {
+    if (!isPulling.current) return;
+    const diff = clientY - pullStartY.current;
+    if (diff <= 0) { setPullProgress(0); return; }
+    const damped = Math.min(diff * 0.4, pullThreshold);
+    setPullProgress(damped / pullThreshold);
+  }, []);
+
+  const handlePullEnd = useCallback(() => {
+    if (!isPulling.current) return;
+    isPulling.current = false;
+    if (pullProgress >= 0.8) handleStart();
+    setPullProgress(0);
+  }, [pullProgress, handleStart]);
+
   const unit = (v: number) => unitMbps ? v : v / 8;
   const unitLabel = unitMbps ? 'Mbps' : 'MB/s';
 
@@ -313,7 +340,22 @@ export default function App() {
   }, [isComplete, testData]);
 
   return (
-    <div className={`min-h-screen ${dark ? 'dark bg-[#0a0a0f]' : 'bg-gray-50'} antialiased font-sans transition-colors`}>
+    <div
+      className={`min-h-screen ${dark ? 'dark bg-[#0a0a0f]' : 'bg-gray-50'} antialiased font-sans transition-colors`}
+      onTouchStart={e => handlePullStart(e.touches[0].clientY)}
+      onTouchMove={e => handlePullMove(e.touches[0].clientY)}
+      onTouchEnd={handlePullEnd}
+    >
+      {pullProgress > 0 && (
+        <div className="fixed top-0 left-0 right-0 z-50 flex justify-center pointer-events-none" style={{ transform: `translateY(${(pullProgress - 1) * 60}px)` }}>
+          <div className={`flex items-center gap-2 px-5 py-2.5 rounded-full shadow-lg backdrop-blur-md transition-colors ${pullProgress >= 0.8 ? 'bg-blue-500/20 border border-blue-400/30' : 'bg-white/10 border border-white/20'}`}>
+            <ArrowDown size={14} strokeWidth={3} className={`transition-transform duration-200 ${pullProgress >= 0.8 ? 'rotate-180' : ''}`} />
+            <span className={`text-xs font-semibold tracking-wide ${pullProgress >= 0.8 ? 'text-blue-300' : 'text-white/70'}`}>
+              {pullProgress >= 0.8 ? 'Release to start' : 'Pull to test'}
+            </span>
+          </div>
+        </div>
+      )}
       {showSettings && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-3 sm:p-4" onClick={() => setShowSettings(false)}>
           <Card variant={dark ? 'shadow' : 'flat'} className={`w-full max-w-xs sm:max-w-sm max-h-[90vh] overflow-y-auto ${dark ? 'bg-[#12121a]' : 'bg-white'}`} onClick={e => e.stopPropagation()}>
