@@ -33,7 +33,7 @@ async function runUploadStreamCf(onBytes: (n: number) => void, signal: AbortSign
 
 export const cloudflareProvider: SpeedtestProvider = {
   id: 'cloudflare',
-  name: 'Cloudflare',
+  name: 'Cloudflare Speedtest Network',
   shortName: 'Cloudflare',
   description: 'Tests against Cloudflare\'s global edge network via HTTP',
 
