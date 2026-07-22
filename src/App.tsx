@@ -244,40 +244,69 @@ export default function App() {
   const isActive = testData.phase === 'discovering' || testData.phase === 'ping' || testData.phase === 'download' || testData.phase === 'upload';
 
   const [pullProgress, setPullProgress] = useState(0);
-  const pullProgressRef = useRef(0);
-  const pullStartY = useRef(0);
-  const isPulling = useRef(false);
-  const pullDeadzone = 5;
-  const pullDamping = 0.5;
-  const pullThreshold = 50;
-  const pullArmed = useRef(false);
+  const pullRef = useRef({ progress: 0, startY: 0, pulling: false, armed: false, isActive: false });
 
-  const handlePullStart = useCallback((clientY: number) => {
-    if (window.scrollY > 0) return;
-    if (isActive) return;
-    pullStartY.current = clientY;
-    isPulling.current = true;
-    pullArmed.current = false;
-  }, [isActive]);
+  useEffect(() => {
+    const deadzone = 5;
+    const damping = 0.5;
+    const threshold = 50;
+    const ref = pullRef.current;
 
-  const handlePullMove = useCallback((clientY: number) => {
-    if (!isPulling.current) return;
-    const diff = clientY - pullStartY.current;
-    if (diff <= pullDeadzone) { pullArmed.current = false; return; }
-    pullArmed.current = true;
-    const damped = Math.min((diff - pullDeadzone) * pullDamping, pullThreshold);
-    const progress = damped / pullThreshold;
-    pullProgressRef.current = progress;
-    setPullProgress(progress);
+    const start = (clientY: number) => {
+      if (window.scrollY > 0 || ref.isActive) return;
+      ref.startY = clientY;
+      ref.pulling = true;
+      ref.armed = false;
+    };
+
+    const move = (clientY: number) => {
+      if (!ref.pulling) return;
+      const diff = clientY - ref.startY;
+      if (diff <= deadzone) { ref.armed = false; return; }
+      ref.armed = true;
+      const damped = Math.min((diff - deadzone) * damping, threshold);
+      ref.progress = damped / threshold;
+      setPullProgress(ref.progress);
+    };
+
+    const end = () => {
+      if (!ref.pulling) return;
+      ref.pulling = false;
+      if (ref.progress >= 0.8 && ref.armed) handleStartRef.current();
+      ref.progress = 0;
+      setPullProgress(0);
+    };
+
+    const onTouchStart = (e: TouchEvent) => start(e.touches[0].clientY);
+    const onTouchMove = (e: TouchEvent) => move(e.touches[0].clientY);
+    const onTouchEnd = () => end();
+    const onMouseDown = (e: MouseEvent) => start(e.clientY);
+    const onMouseMove = (e: MouseEvent) => { if (e.buttons > 0) move(e.clientY); };
+    const onMouseUp = () => end();
+
+    document.addEventListener('touchstart', onTouchStart, { passive: true });
+    document.addEventListener('touchmove', onTouchMove, { passive: true });
+    document.addEventListener('touchend', onTouchEnd, { passive: true });
+    document.addEventListener('mousedown', onMouseDown);
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup', onMouseUp);
+
+    return () => {
+      document.removeEventListener('touchstart', onTouchStart);
+      document.removeEventListener('touchmove', onTouchMove);
+      document.removeEventListener('touchend', onTouchEnd);
+      document.removeEventListener('mousedown', onMouseDown);
+      document.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('mouseup', onMouseUp);
+    };
   }, []);
 
-  const handlePullEnd = useCallback(() => {
-    if (!isPulling.current) return;
-    isPulling.current = false;
-    if (pullProgressRef.current >= 0.8 && pullArmed.current) handleStart();
-    pullProgressRef.current = 0;
-    setPullProgress(0);
-  }, [handleStart]);
+  const handleStartRef = useRef(handleStart);
+  handleStartRef.current = handleStart;
+
+  useEffect(() => {
+    pullRef.current.isActive = isActive;
+  }, [isActive]);
 
   const unit = (v: number) => unitMbps ? v : v / 8;
   const unitLabel = unitMbps ? 'Mbps' : 'MB/s';
@@ -351,12 +380,6 @@ export default function App() {
   return (
     <div
       className={`min-h-screen ${dark ? 'dark bg-[#0a0a0f]' : 'bg-gray-50'} antialiased font-sans transition-colors`}
-      onTouchStart={e => handlePullStart(e.touches[0].clientY)}
-      onTouchMove={e => handlePullMove(e.touches[0].clientY)}
-      onTouchEnd={handlePullEnd}
-      onMouseDown={e => handlePullStart(e.clientY)}
-      onMouseMove={e => e.buttons > 0 && handlePullMove(e.clientY)}
-      onMouseUp={handlePullEnd}
     >
       {pullProgress > 0 && (
         <div className="fixed top-0 left-0 right-0 z-50 flex justify-center pointer-events-none" style={{ transform: `translateY(${(pullProgress - 1) * 50}px)` }}>
