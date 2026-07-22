@@ -14,10 +14,10 @@ const STORAGE_KEY = 'netspeed-settings';
 export const DEFAULT_SETTINGS: SpeedtestSettings = {
   dlDuration: 10000,
   ulDuration: 10000,
-  dlStreams: 4,
-  ulStreams: 4,
-  dlChunkSize: 5_000_000,
-  ulChunkSize: 1_000_000,
+  dlStreams: 3,
+  ulStreams: 3,
+  dlChunkSize: 2_000_000,
+  ulChunkSize: 500_000,
   pingSamples: 6,
   autoSelectServer: true,
 };

@@ -146,7 +146,7 @@ async function discoverServers(): Promise<OoklaServer[]> {
   return EMBEDDED_SERVERS;
 }
 
-function connectOokla(host: string, secure?: boolean): Promise<WebSocket> {
+function connectOokla(host: string, secure?: boolean, signal?: AbortSignal): Promise<WebSocket> {
   return new Promise((resolve, reject) => {
     const scheme = secure ? 'wss' : 'ws';
     const ws = new WebSocket(`${scheme}://${host}/ws`);
@@ -156,6 +156,11 @@ function connectOokla(host: string, secure?: boolean): Promise<WebSocket> {
       if (!closed) { closed = true; ws.close(); reject(new Error('connect timeout')); }
     }, 5000);
     const cleanup = () => { clearTimeout(timeout); closed = true; };
+
+    const onAbort = () => {
+      if (!closed) { closed = true; ws.close(); reject(new Error('aborted')); }
+    };
+    signal?.addEventListener('abort', onAbort, { once: true });
 
     ws.addEventListener('open', () => {
       if (closed) { ws.close(); return; }
@@ -167,21 +172,22 @@ function connectOokla(host: string, secure?: boolean): Promise<WebSocket> {
         ws.send('GETIP');
       } else if (event.data.startsWith('YOURIP')) {
         cleanup();
+        signal?.removeEventListener('abort', onAbort);
         ws.removeEventListener('message', handler);
         resolve(ws);
       }
     });
-    ws.addEventListener('error', () => { if (!closed) { cleanup(); reject(new Error('ws error')); } });
-    ws.addEventListener('close', () => { if (!closed) { cleanup(); reject(new Error('ws closed')); } });
+    ws.addEventListener('error', () => { if (!closed) { cleanup(); signal?.removeEventListener('abort', onAbort); reject(new Error('ws error')); } });
+    ws.addEventListener('close', () => { if (!closed) { cleanup(); signal?.removeEventListener('abort', onAbort); reject(new Error('ws closed')); } });
   });
 }
 
-async function connectOoklaWithFallback(host: string): Promise<WebSocket> {
+async function connectOoklaWithFallback(host: string, signal?: AbortSignal): Promise<WebSocket> {
   const preferSecure = window.location.protocol === 'https:';
   try {
-    return await connectOokla(host, preferSecure);
+    return await connectOokla(host, preferSecure, signal);
   } catch {
-    return await connectOokla(host, !preferSecure);
+    return await connectOokla(host, !preferSecure, signal);
   }
 }
 
@@ -236,7 +242,7 @@ function timeoutSignal(ms: number): AbortSignal {
 async function testServerLatency(host: string, samples: number): Promise<{ latency: number; jitter: number; packetLoss: number } | null> {
   let ws: WebSocket | null = null;
   try {
-    ws = await connectOoklaWithFallback(host);
+    ws = await connectOoklaWithFallback(host, AbortSignal.timeout(5000));
     const pings: number[] = [];
     let failures = 0;
     for (let i = 0; i < samples; i++) {
@@ -271,16 +277,18 @@ async function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
   ]);
 }
 
-async function runDownloadStream(host: string, onBytes: (n: number) => void, signal: AbortSignal, chunkSize = 5_000_000): Promise<void> {
+async function runDownloadStream(host: string, onBytes: (n: number) => void, signal: AbortSignal, chunkSize = 2_000_000): Promise<void> {
   let ws: WebSocket | null = null;
   try {
-    ws = await withTimeout(connectOoklaWithFallback(host), 5000);
+    ws = await connectOoklaWithFallback(host, AbortSignal.timeout(5000));
     while (!signal.aborted) {
       ws.send(`DOWNLOAD ${chunkSize}`);
       let received = 0;
       while (received < chunkSize) {
         if (signal.aborted) return;
-        const data = await withTimeout(waitForBinary(ws, signal), 10000);
+        const timeout = AbortSignal.timeout(10000);
+        const combined = AbortSignal.any([signal, timeout]);
+        const data = await waitForBinary(ws, combined);
         onBytes(data.byteLength);
         received += data.byteLength;
       }
@@ -292,16 +300,18 @@ async function runDownloadStream(host: string, onBytes: (n: number) => void, sig
   }
 }
 
-async function runUploadStream(host: string, onBytes: (n: number) => void, signal: AbortSignal, chunkSize = 1_000_000): Promise<void> {
+async function runUploadStream(host: string, onBytes: (n: number) => void, signal: AbortSignal, chunkSize = 500_000): Promise<void> {
   let ws: WebSocket | null = null;
   try {
-    ws = await withTimeout(connectOoklaWithFallback(host), 5000);
+    ws = await connectOoklaWithFallback(host, AbortSignal.timeout(5000));
     const payload = new ArrayBuffer(chunkSize);
     while (!signal.aborted) {
       ws.send(`UPLOAD ${chunkSize}`);
       ws.send(payload);
       onBytes(chunkSize);
-      await withTimeout(waitForText(ws, signal), 10000);
+      const timeout = AbortSignal.timeout(10000);
+      const combined = AbortSignal.any([signal, timeout]);
+      await waitForText(ws, combined);
     }
   } catch {
     if (signal.aborted) return;
