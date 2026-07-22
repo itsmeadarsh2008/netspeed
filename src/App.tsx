@@ -549,7 +549,24 @@ export default function App() {
                       {connInfo.asn && row('ASN', connInfo.asn, dark)}
                       {row('ISP', connInfo.isp, dark)}
                       {(connInfo.city || connInfo.country) && row('Location', [connInfo.city, connInfo.region, connInfo.country].filter(Boolean).join(', '), dark)}
-                      {dnsInfo && row('DNS', `${dnsInfo.provider} (${sensitiveVisible ? dnsInfo.ip : maskIp(dnsInfo.ip)})`, dark)}
+                      {dnsInfo && (() => {
+                        const dnsValue = `${dnsInfo.provider} (${sensitiveVisible ? dnsInfo.ip : maskIp(dnsInfo.ip)})`;
+                        const paren = dnsValue.indexOf(' (');
+                        if (paren !== -1) {
+                          const main = dnsValue.slice(0, paren);
+                          const sub = dnsValue.slice(paren);
+                          return (
+                            <div className="flex items-center justify-between py-1.5">
+                              <span className={`text-xs ${dark ? 'text-white/35' : 'text-gray-500'} tracking-wider transition-colors duration-200`}>DNS</span>
+                              <div className="text-right">
+                                <div className={`text-sm font-medium ${dark ? 'text-white/70' : 'text-gray-700'} tabular-nums tracking-tight transition-all duration-200`}>{main}</div>
+                                <div className={`text-[10px] leading-tight -mt-0.5 ${dark ? 'text-white/30' : 'text-gray-400'}`}>{sub}</div>
+                              </div>
+                            </div>
+                          );
+                        }
+                        return row('DNS', dnsValue, dark);
+                      })()}
                     </div>
 
                     <div className={`mx-2 border-t ${dark ? 'border-white/[0.04]' : 'border-gray-200'}`} />
