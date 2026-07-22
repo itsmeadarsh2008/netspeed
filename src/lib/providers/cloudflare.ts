@@ -128,22 +128,26 @@ export const cloudflareProvider: SpeedtestProvider = {
         const interval = setInterval(() => {
           if (signal.aborted) { streamSignal.abort(); clearInterval(interval); resolve(); return; }
           const now = performance.now();
+          let liveSpeed = 0;
           if (dlFirst) {
             const elapsed = (now - dlFirst) / 1000;
             const dt = (now - (dlPrevElapsed ? (dlFirst + dlPrevElapsed * 1000) : dlFirst)) / 1000;
             const db = dlBytes - dlPrevBytes;
-            if (dt > 0.01) dlSamples.push((db / 1_000_000 * 8) / dt);
+            if (dt > 0.01) {
+              const s = (db / 1_000_000 * 8) / dt;
+              dlSamples.push(s);
+              liveSpeed = s;
+            }
             dlPrevBytes = dlBytes;
             dlPrevElapsed = elapsed;
           }
-          const avg = dlFirst ? (dlBytes / 1_000_000 * 8) / ((now - dlFirst) / 1000) : 0;
           pingTick++;
           if (pingTick % 4 === 0) {
             fetch(`${BASE}/__down?bytes=1`, { cache: 'no-store', signal: AbortSignal.timeout(2000) })
               .then(() => { loadedLatency = Math.max(loadedLatency, performance.now() - now); })
               .catch(() => {});
           }
-          emit('download', { downloadSpeed: avg, dlProgress: dlFirst ? Math.min(((now - dlFirst) / 1000) / (DL_DURATION / 1000), 1) : 0, ping, jitter, packetLoss, serverName: server.name });
+          emit('download', { downloadSpeed: liveSpeed, dlProgress: dlFirst ? Math.min(((now - dlFirst) / 1000) / (DL_DURATION / 1000), 1) : 0, ping, jitter, packetLoss, serverName: server.name });
           if (dlFirst && ((now - dlFirst) / 1000) >= DL_DURATION / 1000) { streamSignal.abort(); clearInterval(interval); resolve(); }
         }, 200);
       });
@@ -172,16 +176,20 @@ export const cloudflareProvider: SpeedtestProvider = {
         const interval = setInterval(() => {
           if (signal.aborted) { streamSignal.abort(); clearInterval(interval); resolve(); return; }
           const now = performance.now();
+          let liveSpeed = 0;
           if (ulFirst) {
             const elapsed = (now - ulFirst) / 1000;
             const dt = (now - (ulPrevElapsed ? (ulFirst + ulPrevElapsed * 1000) : ulFirst)) / 1000;
             const db = ulBytes - ulPrevBytes;
-            if (dt > 0.01) ulSamples.push((db / 1_000_000 * 8) / dt);
+            if (dt > 0.01) {
+              const s = (db / 1_000_000 * 8) / dt;
+              ulSamples.push(s);
+              liveSpeed = s;
+            }
             ulPrevBytes = ulBytes;
             ulPrevElapsed = elapsed;
           }
-          const avg = ulFirst ? (ulBytes / 1_000_000 * 8) / ((now - ulFirst) / 1000) : 0;
-          emit('upload', { uploadSpeed: avg, ulProgress: ulFirst ? Math.min(((now - ulFirst) / 1000) / (UL_DURATION / 1000), 1) : 0, ping, jitter, packetLoss, serverName: server.name });
+          emit('upload', { uploadSpeed: liveSpeed, ulProgress: ulFirst ? Math.min(((now - ulFirst) / 1000) / (UL_DURATION / 1000), 1) : 0, ping, jitter, packetLoss, serverName: server.name });
           if (ulFirst && ((now - ulFirst) / 1000) >= UL_DURATION / 1000) { streamSignal.abort(); clearInterval(interval); resolve(); }
         }, 200);
       });
