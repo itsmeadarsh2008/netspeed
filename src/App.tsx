@@ -82,10 +82,8 @@ function fmtDownlink(mbps: number): string {
   return mbps.toFixed(1) + ' Mbps';
 }
 
-function maskIp(ip: string): string {
-  const parts = ip.split('.');
-  if (parts.length !== 4) return ip;
-   return `•••. •••. •••.${parts[3]}`;
+function maskIp(_ip: string): string {
+  return '•••••••••••';
 }
 
 export default function App() {
