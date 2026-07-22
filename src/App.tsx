@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Button, Card, Switch } from '@heroui/react';
-import { Activity, Download, Eye, EyeOff, Globe, Moon, Monitor, Search, Settings, Share2, Sun, X } from 'lucide-react';
+import { Activity, ArrowDown, ArrowUp, Clock, Download, Eye, EyeOff, Globe, Gauge, Monitor, Moon, Search, Server, Settings, Share2, Sun, WifiOff, X } from 'lucide-react';
 import { toPng } from 'html-to-image';
 import Gauge from './components/Gauge';
 import SpeedGraph from './components/SpeedGraph';
@@ -28,9 +28,9 @@ function fmtSpeedBytes(value: number): string {
   return (mbps / 1000).toFixed(1);
 }
 
-const row = (label: string, value: string, dark: boolean, color?: string) => (
+const row = (label: React.ReactNode, value: string, dark: boolean, color?: string) => (
   <div className="flex items-center justify-between py-1.5">
-    <span className={`text-xs ${dark ? 'text-white/35' : 'text-gray-500'} tracking-wider transition-colors duration-200`}>{label}</span>
+    <span className={`text-xs ${dark ? 'text-white/35' : 'text-gray-500'} tracking-wider flex items-center gap-1 transition-colors duration-200`}>{label}</span>
     <span className={`text-sm font-medium tabular-nums tracking-tight transition-all duration-200 ${color ? color : dark ? 'text-white/70' : 'text-gray-700'}`}>{value}</span>
   </div>
 );
@@ -490,12 +490,12 @@ export default function App() {
                   )}
                 </div>
                 <div className="px-4 pb-4">
-                  {row('Download', testData.downloadSpeed > 0 ? `${fmtSpeed(unit(testData.downloadSpeed))} ${unitLabel}` : '--', dark, 'dark:text-cyan-400')}
-                  {row('Upload', testData.uploadSpeed > 0 ? `${fmtSpeed(unit(testData.uploadSpeed))} ${unitLabel}` : '--', dark, 'dark:text-amber-400')}
-                  {row('Ping', testData.ping > 0 ? `${testData.ping.toFixed(1)} ms` : '--', dark, 'dark:text-green-400')}
-                  {row('Jitter', testData.jitter > 0 ? `${testData.jitter.toFixed(1)} ms` : '--', dark, 'dark:text-purple-400')}
-                  {testData.phase !== 'idle' && row('Packet Loss', testData.packetLoss > 0 ? `${testData.packetLoss.toFixed(1)}%` : '0%', dark, 'dark:text-rose-400')}
-                  {testData.loadedLatency > 0 && row('Loaded Latency', `${testData.loadedLatency.toFixed(1)} ms`, dark, 'dark:text-yellow-400')}
+                  {row(<><ArrowDown size={11} /> Download</>, testData.downloadSpeed > 0 ? `${fmtSpeed(unit(testData.downloadSpeed))} ${unitLabel}` : '--', dark, 'dark:text-cyan-400')}
+                  {row(<><ArrowUp size={11} /> Upload</>, testData.uploadSpeed > 0 ? `${fmtSpeed(unit(testData.uploadSpeed))} ${unitLabel}` : '--', dark, 'dark:text-amber-400')}
+                  {row(<><Activity size={11} /> Ping</>, testData.ping > 0 ? `${testData.ping.toFixed(1)} ms` : '--', dark, 'dark:text-green-400')}
+                  {row(<><Gauge size={11} /> Jitter</>, testData.jitter > 0 ? `${testData.jitter.toFixed(1)} ms` : '--', dark, 'dark:text-purple-400')}
+                  {testData.phase !== 'idle' && row(<><WifiOff size={11} /> Packet Loss</>, testData.packetLoss > 0 ? `${testData.packetLoss.toFixed(1)}%` : '0%', dark, 'dark:text-rose-400')}
+                  {testData.loadedLatency > 0 && row(<><Clock size={11} /> Loaded Latency</>, `${testData.loadedLatency.toFixed(1)} ms`, dark, 'dark:text-yellow-400')}
                   {testData.serverName && (() => {
                     const paren = testData.serverName.indexOf(' (');
                     if (paren !== -1) {
@@ -503,7 +503,7 @@ export default function App() {
                       const main = testData.serverName.slice(paren + 2, -1);
                       return (
                         <div className="flex items-center justify-between py-1.5">
-                          <span className={`text-xs ${dark ? 'text-white/35' : 'text-gray-500'} tracking-wider transition-colors duration-200`}>Server</span>
+                          <span className={`text-xs ${dark ? 'text-white/35' : 'text-gray-500'} tracking-wider flex items-center gap-1 transition-colors duration-200`}><Server size={11} /> Server</span>
                           <div className="text-right">
                             <div className={`text-sm font-medium ${dark ? 'text-white/70' : 'text-gray-700'} tabular-nums tracking-tight transition-all duration-200`}>{main}</div>
                             <div className={`text-[10px] leading-tight -mt-0.5 ${dark ? 'text-white/30' : 'text-gray-400'}`}>{sub}</div>
@@ -511,7 +511,7 @@ export default function App() {
                         </div>
                       );
                     }
-                    return row('Server', testData.serverName, dark);
+                    return row(<><Server size={11} /> Server</>, testData.serverName, dark);
                   })()}
                 </div>
 
@@ -545,10 +545,10 @@ export default function App() {
                           {sensitiveVisible ? <EyeOff size={12} /> : <Eye size={12} />}
                         </button>
                       </div>
-                      {row('IP Address', sensitiveVisible ? connInfo.ip : maskIp(connInfo.ip), dark)}
-                      {connInfo.asn && row('ASN', connInfo.asn, dark)}
-                      {row('ISP', connInfo.isp, dark)}
-                      {(connInfo.city || connInfo.country) && row('Location', [connInfo.city, connInfo.region, connInfo.country].filter(Boolean).join(', '), dark)}
+                      {row(<><Globe size={11} /> IP Address</>, sensitiveVisible ? connInfo.ip : maskIp(connInfo.ip), dark)}
+                      {connInfo.asn && row(<>ASN</>, connInfo.asn, dark)}
+                      {row(<>ISP</>, connInfo.isp, dark)}
+                      {(connInfo.city || connInfo.country) && row(<>Location</>, [connInfo.city, connInfo.region, connInfo.country].filter(Boolean).join(', '), dark)}
                       {dnsInfo && (() => {
                         const dnsValue = `${dnsInfo.provider} (${sensitiveVisible ? dnsInfo.ip : maskIp(dnsInfo.ip)})`;
                         const paren = dnsValue.indexOf(' (');
@@ -557,7 +557,7 @@ export default function App() {
                           const main = dnsValue.slice(paren + 2, -1);
                           return (
                             <div className="flex items-center justify-between py-1.5">
-                              <span className={`text-xs ${dark ? 'text-white/35' : 'text-gray-500'} tracking-wider transition-colors duration-200`}>DNS</span>
+                              <span className={`text-xs ${dark ? 'text-white/35' : 'text-gray-500'} tracking-wider flex items-center gap-1 transition-colors duration-200`}><Search size={11} /> DNS</span>
                               <div className="text-right">
                                 <div className={`text-sm font-medium ${dark ? 'text-white/70' : 'text-gray-700'} tabular-nums tracking-tight transition-all duration-200`}>{main}</div>
                                 <div className={`text-[10px] leading-tight -mt-0.5 ${dark ? 'text-white/30' : 'text-gray-400'}`}>{sub}</div>
@@ -565,7 +565,7 @@ export default function App() {
                             </div>
                           );
                         }
-                        return row('DNS', dnsValue, dark);
+                        return row(<><Search size={11} /> DNS</>, dnsValue, dark);
                       })()}
                     </div>
 
@@ -575,8 +575,8 @@ export default function App() {
                         <Monitor size={11} className={dark ? 'text-white/25' : 'text-gray-400'} />
                         <span className={`text-[10px] font-semibold tracking-widest uppercase ${dark ? 'text-white/25' : 'text-gray-400'}`}>Client</span>
                       </div>
-                      {row('Browser', connInfo.browser, dark)}
-                      {row('Platform', connInfo.platform, dark)}
+                      {row(<><Monitor size={11} /> Browser</>, connInfo.browser, dark)}
+                      {row(<>Platform</>, connInfo.platform, dark)}
                     </div>
 
                     {(connInfo.effectiveType !== 'Unknown' || connInfo.rtt > 0) && (
@@ -587,10 +587,10 @@ export default function App() {
                             <Activity size={11} className={dark ? 'text-white/25' : 'text-gray-400'} />
                             <span className={`text-[10px] font-semibold tracking-widest uppercase ${dark ? 'text-white/25' : 'text-gray-400'}`}>Network</span>
                           </div>
-                          {connInfo.connectionType !== 'Unknown' && row('Connection', fmtConnType(connInfo.connectionType), dark)}
-                          {connInfo.effectiveType !== 'Unknown' && row('Effective Type', connInfo.effectiveType.toUpperCase(), dark)}
-                          {connInfo.rtt > 0 && row('Browser RTT', `${connInfo.rtt} ms`, dark)}
-                          {connInfo.downlink > 0 && row('Browser Downlink', fmtDownlink(connInfo.downlink), dark)}
+                          {connInfo.connectionType !== 'Unknown' && row(<>Connection</>, fmtConnType(connInfo.connectionType), dark)}
+                          {connInfo.effectiveType !== 'Unknown' && row(<>Effective Type</>, connInfo.effectiveType.toUpperCase(), dark)}
+                          {connInfo.rtt > 0 && row(<>Browser RTT</>, `${connInfo.rtt} ms`, dark)}
+                          {connInfo.downlink > 0 && row(<>Browser Downlink</>, fmtDownlink(connInfo.downlink), dark)}
                         </div>
                       </>
                     )}
