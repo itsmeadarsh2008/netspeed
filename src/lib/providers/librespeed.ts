@@ -58,12 +58,18 @@ async function xhrPost(url: string, body: Blob, signal: AbortSignal, onProgress?
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
     let prev = 0;
-    xhr.upload.onprogress = (e) => {
-      if (onProgress && e.loaded > prev) {
-        onProgress(e.loaded - prev);
-        prev = e.loaded;
+    const report = (loaded: number) => {
+      if (loaded > prev) {
+        onProgress?.(loaded - prev);
+        prev = loaded;
       }
     };
+    if (xhr.upload) {
+      xhr.upload.onprogress = (e) => report(e.loaded);
+      xhr.upload.onload = () => report(body.size);
+    } else {
+      report(body.size);
+    }
     xhr.onload = () => resolve();
     xhr.onerror = () => reject(new Error('xhr error'));
     xhr.onabort = () => reject(new Error('aborted'));
