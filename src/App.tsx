@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Button, Card, Switch } from '@heroui/react';
-import { Activity, ArrowDown, ArrowUp, Clock, Download, Eye, EyeOff, Globe, Gauge, Monitor, Moon, Search, Server, Settings, Share2, Sun, WifiOff, X } from 'lucide-react';
+import { Activity, ArrowDown, ArrowUp, Clock, Download, Eye, EyeOff, Globe, GaugeIcon, Monitor, Moon, Search, Server, Settings, Share2, Sun, WifiOff, X } from 'lucide-react';
 import { toPng } from 'html-to-image';
 import Gauge from './components/Gauge';
 import SpeedGraph from './components/SpeedGraph';
@@ -493,7 +493,7 @@ export default function App() {
                   {row(<><ArrowDown size={11} /> Download</>, testData.downloadSpeed > 0 ? `${fmtSpeed(unit(testData.downloadSpeed))} ${unitLabel}` : '--', dark, 'dark:text-cyan-400')}
                   {row(<><ArrowUp size={11} /> Upload</>, testData.uploadSpeed > 0 ? `${fmtSpeed(unit(testData.uploadSpeed))} ${unitLabel}` : '--', dark, 'dark:text-amber-400')}
                   {row(<><Activity size={11} /> Ping</>, testData.ping > 0 ? `${testData.ping.toFixed(1)} ms` : '--', dark, 'dark:text-green-400')}
-                  {row(<><Gauge size={11} /> Jitter</>, testData.jitter > 0 ? `${testData.jitter.toFixed(1)} ms` : '--', dark, 'dark:text-purple-400')}
+                  {row(<><GaugeIcon size={11} /> Jitter</>, testData.jitter > 0 ? `${testData.jitter.toFixed(1)} ms` : '--', dark, 'dark:text-purple-400')}
                   {testData.phase !== 'idle' && row(<><WifiOff size={11} /> Packet Loss</>, testData.packetLoss > 0 ? `${testData.packetLoss.toFixed(1)}%` : '0%', dark, 'dark:text-rose-400')}
                   {testData.loadedLatency > 0 && row(<><Clock size={11} /> Loaded Latency</>, `${testData.loadedLatency.toFixed(1)} ms`, dark, 'dark:text-yellow-400')}
                   {testData.serverName && (() => {
