@@ -417,7 +417,7 @@ export default function App() {
             <div className={`flex items-center gap-2 px-3 py-2.5 text-xs font-medium rounded-xl transition-colors ${
               dark ? 'bg-white/[0.03] text-white/70 border border-white/[0.06]' : 'bg-gray-100 text-gray-700 border border-gray-200'
             } focus-within:ring-1 focus-within:ring-accent`}>
-              <Search size={13} className={`shrink-0 ${dark ? 'text-white/25' : 'text-gray-400'}`} />
+              <Search size={14} strokeWidth={2.5} className={`shrink-0 ${dark ? 'text-white/25' : 'text-gray-400'}`} />
               <input
                 type="text"
                 value={serverSearch}
@@ -509,11 +509,12 @@ export default function App() {
                   )}
                 </div>
                 <div className="px-4 pb-4">
-                  {row(<><ArrowDown size={13} /> Download</>, testData.downloadSpeed > 0 ? `${fmtSpeed(unit(testData.downloadSpeed))} ${unitLabel}` : '--', dark, 'dark:text-cyan-400')}
-                  {row(<><ArrowUp size={13} /> Upload</>, testData.uploadSpeed > 0 ? `${fmtSpeed(unit(testData.uploadSpeed))} ${unitLabel}` : '--', dark, 'dark:text-green-400')}
-                  {row(<><Activity size={13} /> Ping</>, testData.ping > 0 ? `${testData.ping.toFixed(1)} ms (${pingLabel(testData.ping)})` : '--', dark, pingColor(testData.ping))}
-                  {testData.phase !== 'idle' && row(<><WifiOff size={13} /> Packet Loss</>, testData.packetLoss > 0 ? `${testData.packetLoss.toFixed(1)}%` : '0%', dark, 'dark:text-yellow-400')}
-                  {testData.loadedLatency > 0 && row(<><Clock size={13} /> Loaded Latency</>, `${testData.loadedLatency.toFixed(1)} ms`, dark, 'dark:text-yellow-400')}
+                  {row(<><ArrowDown size={15} strokeWidth={3} /> Download</>, testData.downloadSpeed > 0 ? `${fmtSpeed(unit(testData.downloadSpeed))} ${unitLabel}` : '--', dark, 'dark:text-cyan-400')}
+                  {row(<><ArrowUp size={15} strokeWidth={3} /> Upload</>, testData.uploadSpeed > 0 ? `${fmtSpeed(unit(testData.uploadSpeed))} ${unitLabel}` : '--', dark, 'dark:text-green-400')}
+                  {row(<><Activity size={15} strokeWidth={3} /> Ping</>, testData.ping > 0 ? `${testData.ping.toFixed(1)} ms (${pingLabel(testData.ping)})` : '--', dark, pingColor(testData.ping))}
+                  {row(<><GaugeIcon size={15} strokeWidth={3} /> Jitter</>, testData.jitter > 0 ? `${testData.jitter.toFixed(1)} ms` : '--', dark, 'dark:text-purple-400')}
+                  {testData.phase !== 'idle' && row(<><WifiOff size={15} strokeWidth={3} /> Packet Loss</>, testData.packetLoss > 0 ? `${testData.packetLoss.toFixed(1)}%` : '0%', dark, 'dark:text-yellow-400')}
+                  {testData.loadedLatency > 0 && row(<><Clock size={15} strokeWidth={3} /> Loaded Latency</>, `${testData.loadedLatency.toFixed(1)} ms`, dark, 'dark:text-teal-400')}
                   {testData.serverName && (() => {
                     const paren = testData.serverName.indexOf(' (');
                     if (paren !== -1) {
@@ -521,7 +522,7 @@ export default function App() {
                       const main = testData.serverName.slice(paren + 2, -1);
                       return (
                         <div className="flex items-center justify-between py-1.5">
-                          <span className={`text-xs ${dark ? 'text-white/35' : 'text-gray-500'} tracking-wider flex items-center gap-1 transition-colors duration-200`}><Server size={13} /> Server</span>
+                          <span className={`text-xs ${dark ? 'text-white/35' : 'text-gray-500'} tracking-wider flex items-center gap-1 transition-colors duration-200`}><Server size={15} strokeWidth={2.5} /> Server</span>
                           <div className="text-right">
                             <div className={`text-sm font-medium ${dark ? 'text-white/70' : 'text-gray-700'} tabular-nums tracking-tight transition-all duration-200`}>{main}</div>
                             <div className={`text-[10px] leading-tight -mt-0.5 ${dark ? 'text-white/30' : 'text-gray-400'}`}>{sub}</div>
@@ -529,7 +530,7 @@ export default function App() {
                         </div>
                       );
                     }
-                    return row(<><Server size={13} /> Server</>, testData.serverName, dark);
+                    return row(<><Server size={15} strokeWidth={3} /> Server</>, testData.serverName, dark);
                   })()}
                 </div>
 
@@ -542,7 +543,7 @@ export default function App() {
                         dark ? 'text-white/40 hover:text-white/70' : 'text-gray-400 hover:text-gray-700'
                       }`}
                     >
-                      <Share2 size={12} />
+                      <Share2 size={13} strokeWidth={2.5} />
                       {copied ? 'Copied to Clipboard' : 'Share Results'}
                     </button>
                   </div>
@@ -553,17 +554,17 @@ export default function App() {
                     <div className={`mx-2 border-t ${dark ? 'border-white/[0.04]' : 'border-gray-200'}`} />
                     <div className="px-4 pb-4 pt-3">
                       <div className="flex items-center gap-1.5 mb-2">
-                        <Globe size={13} className={dark ? 'text-white/25' : 'text-gray-400'} />
+                        <Globe size={14} strokeWidth={2.5} className={dark ? 'text-white/25' : 'text-gray-400'} />
                         <span className={`text-[10px] font-semibold tracking-widest uppercase ${dark ? 'text-white/25' : 'text-gray-400'}`}>Connection</span>
                         <button
                           onClick={() => setSensitiveVisible(prev => !prev)}
                           className={`ml-auto p-0.5 ${dark ? 'text-white/20 hover:text-white/50' : 'text-gray-400 hover:text-gray-600'}`}
                           title={sensitiveVisible ? 'Hide sensitive info' : 'Show sensitive info'}
                         >
-                          {sensitiveVisible ? <EyeOff size={12} /> : <Eye size={12} />}
+                          {sensitiveVisible ? <EyeOff size={13} strokeWidth={2.5} /> : <Eye size={13} strokeWidth={2.5} />}
                         </button>
                       </div>
-                      {row(<><Globe size={13} /> IP Address</>, sensitiveVisible ? connInfo.ip : maskIp(connInfo.ip), dark)}
+                      {row(<><Globe size={15} strokeWidth={3} /> IP Address</>, sensitiveVisible ? connInfo.ip : maskIp(connInfo.ip), dark)}
                       {connInfo.asn && row(<>ASN</>, connInfo.asn, dark)}
                       {row(<>ISP</>, connInfo.isp, dark)}
                       {(connInfo.city || connInfo.country) && row(<>Location</>, [connInfo.city, connInfo.region, connInfo.country].filter(Boolean).join(', '), dark)}
@@ -575,7 +576,7 @@ export default function App() {
                           const main = dnsValue.slice(paren + 2, -1);
                           return (
                             <div className="flex items-center justify-between py-1.5">
-                              <span className={`text-xs ${dark ? 'text-white/35' : 'text-gray-500'} tracking-wider flex items-center gap-1 transition-colors duration-200`}><Search size={13} /> DNS</span>
+                              <span className={`text-xs ${dark ? 'text-white/35' : 'text-gray-500'} tracking-wider flex items-center gap-1 transition-colors duration-200`}><Search size={15} strokeWidth={3} /> DNS</span>
                               <div className="text-right">
                                 <div className={`text-sm font-medium ${dark ? 'text-white/70' : 'text-gray-700'} tabular-nums tracking-tight transition-all duration-200`}>{main}</div>
                                 <div className={`text-[10px] leading-tight -mt-0.5 ${dark ? 'text-white/30' : 'text-gray-400'}`}>{sub}</div>
@@ -583,17 +584,17 @@ export default function App() {
                             </div>
                           );
                         }
-                        return row(<><Search size={13} /> DNS</>, dnsValue, dark);
+                        return row(<><Search size={15} strokeWidth={3} /> DNS</>, dnsValue, dark);
                       })()}
                     </div>
 
                     <div className={`mx-2 border-t ${dark ? 'border-white/[0.04]' : 'border-gray-200'}`} />
                     <div className="px-4 pb-4 pt-3">
                       <div className="flex items-center gap-1.5 mb-2">
-                        <Monitor size={13} className={dark ? 'text-white/25' : 'text-gray-400'} />
+                        <Monitor size={14} strokeWidth={2.5} className={dark ? 'text-white/25' : 'text-gray-400'} />
                         <span className={`text-[10px] font-semibold tracking-widest uppercase ${dark ? 'text-white/25' : 'text-gray-400'}`}>Client</span>
                       </div>
-                      {row(<><Monitor size={13} /> Browser</>, connInfo.browser, dark)}
+                      {row(<><Monitor size={15} strokeWidth={3} /> Browser</>, connInfo.browser, dark)}
                       {row(<>Platform</>, connInfo.platform, dark)}
                     </div>
 
@@ -602,7 +603,7 @@ export default function App() {
                         <div className={`mx-2 border-t ${dark ? 'border-white/[0.04]' : 'border-gray-200'}`} />
                         <div className="px-4 pb-4 pt-3">
                           <div className="flex items-center gap-1.5 mb-2">
-                            <Activity size={13} className={dark ? 'text-white/25' : 'text-gray-400'} />
+                            <Activity size={14} strokeWidth={2.5} className={dark ? 'text-white/25' : 'text-gray-400'} />
                             <span className={`text-[10px] font-semibold tracking-widest uppercase ${dark ? 'text-white/25' : 'text-gray-400'}`}>Network</span>
                           </div>
                           {connInfo.connectionType !== 'Unknown' && row(<>Connection</>, fmtConnType(connInfo.connectionType), dark)}
