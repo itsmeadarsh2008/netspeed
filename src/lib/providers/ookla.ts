@@ -7,39 +7,41 @@ interface OoklaServer {
   sponsor: string;
   country?: string;
   cc?: string;
+  lat?: number;
+  lon?: number;
 }
 
 const EMBEDDED_SERVERS: OoklaServer[] = [
-  { id: 99901, name: 'Agartala', host: 'bsnlooklaagt.mywire.org.prod.hosts.ooklaserver.net:8080', sponsor: 'BSNL', country: 'India', cc: 'IN' },
-  { id: 99902, name: 'Ahmedabad', host: 'bsnlooklaahb.mywire.org.prod.hosts.ooklaserver.net:8080', sponsor: 'BSNL', country: 'India', cc: 'IN' },
-  { id: 99903, name: 'Ahmedabad (Jio)', host: 'speedahm1.jioconnect.com:8080', sponsor: 'Jio', country: 'India', cc: 'IN' },
-  { id: 99904, name: 'Mumbai (Jio)', host: 'speedbom1.jioconnect.com:8080', sponsor: 'Jio', country: 'India', cc: 'IN' },
-  { id: 99905, name: 'Bangalore (Jio)', host: 'speedblr1.jioconnect.com:8080', sponsor: 'Jio', country: 'India', cc: 'IN' },
-  { id: 99906, name: 'Chennai (Jio)', host: 'speedmaa1.jioconnect.com:8080', sponsor: 'Jio', country: 'India', cc: 'IN' },
-  { id: 99907, name: 'Mumbai (Airtel)', host: 'speedmum01.mum1.airtel.com:8080', sponsor: 'Airtel', country: 'India', cc: 'IN' },
-  { id: 99908, name: 'Delhi (Airtel)', host: 'speeddel01.del2.airtel.com:8080', sponsor: 'Airtel', country: 'India', cc: 'IN' },
-  { id: 99909, name: 'London (Clouvider)', host: 'lon.speedtest.clouvider.net:8080', sponsor: 'Clouvider', country: 'UK', cc: 'GB' },
-  { id: 99910, name: 'New York (Clouvider)', host: 'nyc.speedtest.clouvider.net:8080', sponsor: 'Clouvider', country: 'US', cc: 'US' },
-  { id: 99911, name: 'New York (Comcast)', host: 'nyc.speedtest.comcast.net:8080', sponsor: 'Comcast', country: 'US', cc: 'US' },
-  { id: 99912, name: 'Miami (Comcast)', host: 'mia.speedtest.comcast.net:8080', sponsor: 'Comcast', country: 'US', cc: 'US' },
-  { id: 99913, name: 'Los Angeles (Comcast)', host: 'lax.speedtest.comcast.net:8080', sponsor: 'Comcast', country: 'US', cc: 'US' },
-  { id: 99914, name: 'Toronto (Rogers)', host: 'speedtest.toronto.rogers.com:8080', sponsor: 'Rogers', country: 'Canada', cc: 'CA' },
-  { id: 99915, name: 'Vancouver (Telus)', host: 'telusspeed01.telus.com:8080', sponsor: 'Telus', country: 'Canada', cc: 'CA' },
-  { id: 99916, name: 'London (BT)', host: 'speedtestlondon.bt.com:8080', sponsor: 'BT', country: 'UK', cc: 'GB' },
-  { id: 99917, name: 'Manchester (BT)', host: 'speedtestmanchester.bt.com:8080', sponsor: 'BT', country: 'UK', cc: 'GB' },
-  { id: 99918, name: 'Frankfurt (Deutsche Telekom)', host: 'speedtest.telekom.de:8080', sponsor: 'Deutsche Telekom', country: 'Germany', cc: 'DE' },
-  { id: 99919, name: 'Amsterdam (KPN)', host: 'speedamsterdam.kpn.com:8080', sponsor: 'KPN', country: 'Netherlands', cc: 'NL' },
-  { id: 99920, name: 'Paris (Orange)', host: 'speedtestparis.orange.com:8080', sponsor: 'Orange', country: 'France', cc: 'FR' },
-  { id: 99921, name: 'Singapore (Singtel)', host: 'speedtest.singtel.com:8080', sponsor: 'Singtel', country: 'Singapore', cc: 'SG' },
-  { id: 99922, name: 'Sydney (Telstra)', host: 'speedtestsyd.telstra.com:8080', sponsor: 'Telstra', country: 'Australia', cc: 'AU' },
-  { id: 99923, name: 'Melbourne (Optus)', host: 'speedtestoptusmel.optus.com:8080', sponsor: 'Optus', country: 'Australia', cc: 'AU' },
-  { id: 99924, name: 'Tokyo (SoftBank)', host: 'tokyo.speedtest.softbank.jp:8080', sponsor: 'SoftBank', country: 'Japan', cc: 'JP' },
-  { id: 99925, name: 'Seoul (SK Broadband)', host: 'speedtest.skbroadband.com:8080', sponsor: 'SK Broadband', country: 'South Korea', cc: 'KR' },
-  { id: 99926, name: 'São Paulo (Vivo)', host: 'speedtest.vivo.com.br:8080', sponsor: 'Vivo', country: 'Brazil', cc: 'BR' },
-  { id: 99927, name: 'Dubai (du)', host: 'speedtest.du.ae:8080', sponsor: 'du', country: 'UAE', cc: 'AE' },
-  { id: 99928, name: 'Johannesburg (MTN)', host: 'speedtest.mtn.co.za:8080', sponsor: 'MTN', country: 'South Africa', cc: 'ZA' },
-  { id: 99929, name: 'Moscow (Rostelecom)', host: 'speedtest.rostelecom.ru:8080', sponsor: 'Rostelecom', country: 'Russia', cc: 'RU' },
-  { id: 99930, name: 'Jakarta (Telkomsel)', host: 'speedtest.telkomsel.co.id:8080', sponsor: 'Telkomsel', country: 'Indonesia', cc: 'ID' },
+  { id: 99901, name: 'Agartala', host: 'bsnlooklaagt.mywire.org.prod.hosts.ooklaserver.net:8080', sponsor: 'BSNL', country: 'India', cc: 'IN', lat: 23.83, lon: 91.28 },
+  { id: 99902, name: 'Ahmedabad', host: 'bsnlooklaahb.mywire.org.prod.hosts.ooklaserver.net:8080', sponsor: 'BSNL', country: 'India', cc: 'IN', lat: 23.02, lon: 72.57 },
+  { id: 99903, name: 'Ahmedabad (Jio)', host: 'speedahm1.jioconnect.com:8080', sponsor: 'Jio', country: 'India', cc: 'IN', lat: 23.02, lon: 72.57 },
+  { id: 99904, name: 'Mumbai (Jio)', host: 'speedbom1.jioconnect.com:8080', sponsor: 'Jio', country: 'India', cc: 'IN', lat: 19.08, lon: 72.88 },
+  { id: 99905, name: 'Bangalore (Jio)', host: 'speedblr1.jioconnect.com:8080', sponsor: 'Jio', country: 'India', cc: 'IN', lat: 12.97, lon: 77.59 },
+  { id: 99906, name: 'Chennai (Jio)', host: 'speedmaa1.jioconnect.com:8080', sponsor: 'Jio', country: 'India', cc: 'IN', lat: 13.08, lon: 80.27 },
+  { id: 99907, name: 'Mumbai (Airtel)', host: 'speedmum01.mum1.airtel.com:8080', sponsor: 'Airtel', country: 'India', cc: 'IN', lat: 19.08, lon: 72.88 },
+  { id: 99908, name: 'Delhi (Airtel)', host: 'speeddel01.del2.airtel.com:8080', sponsor: 'Airtel', country: 'India', cc: 'IN', lat: 28.70, lon: 77.10 },
+  { id: 99909, name: 'London (Clouvider)', host: 'lon.speedtest.clouvider.net:8080', sponsor: 'Clouvider', country: 'UK', cc: 'GB', lat: 51.51, lon: -0.13 },
+  { id: 99910, name: 'New York (Clouvider)', host: 'nyc.speedtest.clouvider.net:8080', sponsor: 'Clouvider', country: 'US', cc: 'US', lat: 40.71, lon: -74.01 },
+  { id: 99911, name: 'New York (Comcast)', host: 'nyc.speedtest.comcast.net:8080', sponsor: 'Comcast', country: 'US', cc: 'US', lat: 40.71, lon: -74.01 },
+  { id: 99912, name: 'Miami (Comcast)', host: 'mia.speedtest.comcast.net:8080', sponsor: 'Comcast', country: 'US', cc: 'US', lat: 25.76, lon: -80.19 },
+  { id: 99913, name: 'Los Angeles (Comcast)', host: 'lax.speedtest.comcast.net:8080', sponsor: 'Comcast', country: 'US', cc: 'US', lat: 34.05, lon: -118.24 },
+  { id: 99914, name: 'Toronto (Rogers)', host: 'speedtest.toronto.rogers.com:8080', sponsor: 'Rogers', country: 'Canada', cc: 'CA', lat: 43.65, lon: -79.38 },
+  { id: 99915, name: 'Vancouver (Telus)', host: 'telusspeed01.telus.com:8080', sponsor: 'Telus', country: 'Canada', cc: 'CA', lat: 49.28, lon: -123.12 },
+  { id: 99916, name: 'London (BT)', host: 'speedtestlondon.bt.com:8080', sponsor: 'BT', country: 'UK', cc: 'GB', lat: 51.51, lon: -0.13 },
+  { id: 99917, name: 'Manchester (BT)', host: 'speedtestmanchester.bt.com:8080', sponsor: 'BT', country: 'UK', cc: 'GB', lat: 53.48, lon: -2.24 },
+  { id: 99918, name: 'Frankfurt (Deutsche Telekom)', host: 'speedtest.telekom.de:8080', sponsor: 'Deutsche Telekom', country: 'Germany', cc: 'DE', lat: 50.11, lon: 8.68 },
+  { id: 99919, name: 'Amsterdam (KPN)', host: 'speedamsterdam.kpn.com:8080', sponsor: 'KPN', country: 'Netherlands', cc: 'NL', lat: 52.37, lon: 4.90 },
+  { id: 99920, name: 'Paris (Orange)', host: 'speedtestparis.orange.com:8080', sponsor: 'Orange', country: 'France', cc: 'FR', lat: 48.86, lon: 2.35 },
+  { id: 99921, name: 'Singapore (Singtel)', host: 'speedtest.singtel.com:8080', sponsor: 'Singtel', country: 'Singapore', cc: 'SG', lat: 1.35, lon: 103.82 },
+  { id: 99922, name: 'Sydney (Telstra)', host: 'speedtestsyd.telstra.com:8080', sponsor: 'Telstra', country: 'Australia', cc: 'AU', lat: -33.87, lon: 151.21 },
+  { id: 99923, name: 'Melbourne (Optus)', host: 'speedtestoptusmel.optus.com:8080', sponsor: 'Optus', country: 'Australia', cc: 'AU', lat: -37.81, lon: 144.96 },
+  { id: 99924, name: 'Tokyo (SoftBank)', host: 'tokyo.speedtest.softbank.jp:8080', sponsor: 'SoftBank', country: 'Japan', cc: 'JP', lat: 35.68, lon: 139.69 },
+  { id: 99925, name: 'Seoul (SK Broadband)', host: 'speedtest.skbroadband.com:8080', sponsor: 'SK Broadband', country: 'South Korea', cc: 'KR', lat: 37.57, lon: 126.98 },
+  { id: 99926, name: 'São Paulo (Vivo)', host: 'speedtest.vivo.com.br:8080', sponsor: 'Vivo', country: 'Brazil', cc: 'BR', lat: -23.55, lon: -46.63 },
+  { id: 99927, name: 'Dubai (du)', host: 'speedtest.du.ae:8080', sponsor: 'du', country: 'UAE', cc: 'AE', lat: 25.20, lon: 55.27 },
+  { id: 99928, name: 'Johannesburg (MTN)', host: 'speedtest.mtn.co.za:8080', sponsor: 'MTN', country: 'South Africa', cc: 'ZA', lat: -26.20, lon: 28.04 },
+  { id: 99929, name: 'Moscow (Rostelecom)', host: 'speedtest.rostelecom.ru:8080', sponsor: 'Rostelecom', country: 'Russia', cc: 'RU', lat: 55.75, lon: 37.62 },
+  { id: 99930, name: 'Jakarta (Telkomsel)', host: 'speedtest.telkomsel.co.id:8080', sponsor: 'Telkomsel', country: 'Indonesia', cc: 'ID', lat: -6.21, lon: 106.85 },
 ];
 
 const GITHUB_RAW = 'https://raw.githubusercontent.com/crazyuploader/Speedtest-Servers/main/data';
@@ -97,6 +99,8 @@ function parseServer(s: any, slug: string): OoklaServer | null {
     sponsor: s.sponsor || slug,
     country: s.country,
     cc: s.cc,
+    lat: s.lat,
+    lon: s.lon,
   };
 }
 
@@ -310,6 +314,8 @@ export const ooklaProvider: SpeedtestProvider = {
       host: s.host,
       sponsor: s.sponsor,
       country: s.country,
+      lat: s.lat,
+      lon: s.lon,
       provider: 'ookla',
     }));
   },

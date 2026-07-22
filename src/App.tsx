@@ -4,7 +4,7 @@ import { Activity, Globe, Moon, Monitor, Search, Settings, Sun, X } from 'lucide
 import Gauge from './components/Gauge';
 import SpeedGraph from './components/SpeedGraph';
 import type { TestPhase, SpeedtestUpdate, SpeedtestResult, ProviderServer, SpeedtestSettings } from './lib/speedtest';
-import { startSpeedtest, abortSpeedtest, getProviders, getServersForProvider, rankServersByLatency } from './lib/speedtest';
+import { startSpeedtest, abortSpeedtest, getProviders, getServersForProvider, getUserLocation, rankServersByGeo } from './lib/speedtest';
 import { loadSettings, saveSettings, DEFAULT_SETTINGS } from './lib/settings';
 import { fetchConnectionInfo, type ConnectionInfo } from './lib/connection';
 
@@ -81,8 +81,6 @@ export default function App() {
   const [servers, setServers] = useState<ProviderServer[]>([]);
   const [selectedServer, setSelectedServer] = useState<ProviderServer | null>(null);
   const [serversLoading, setServersLoading] = useState(false);
-  const [serversRanking, setServersRanking] = useState(false);
-  const [serverLatencies, setServerLatencies] = useState<Map<string, number>>(new Map());
   const [serverSearch, setServerSearch] = useState('');
   const [serverDropdownOpen, setServerDropdownOpen] = useState(false);
 
@@ -107,20 +105,20 @@ export default function App() {
   const loadServers = useCallback(async (pid: string) => {
     setServersLoading(true);
     setServerSearch('');
-    setServerLatencies(new Map());
     const list = await getServersForProvider(pid);
-    setServers(list);
     if (list.length > 0) {
+      let sorted = list;
       if (settingsRef.current.autoSelectServer && list.length > 1) {
-        setServersRanking(true);
-        const ranked = await rankServersByLatency(list, pid);
-        setServerLatencies(new Map(ranked.map(r => [r.server.id, r.latency])));
-        setServers(ranked.map(r => r.server));
-        setSelectedServer(ranked[0].server);
-        setServersRanking(false);
-      } else {
-        setSelectedServer(list[0]);
+        try {
+          const userLoc = await getUserLocation();
+          sorted = rankServersByGeo(list, userLoc.lat, userLoc.lon);
+        } catch {}
       }
+      setServers(sorted);
+      setSelectedServer(sorted[0]);
+    } else {
+      setServers([]);
+      setSelectedServer(null);
     }
     setServersLoading(false);
   }, []);
@@ -311,7 +309,7 @@ export default function App() {
           {PROVIDERS.map(p => (
             <button
               key={p.id}
-              disabled={isActive || serversRanking}
+              disabled={isActive}
               onClick={() => setProviderId(p.id)}
               className={`flex-1 px-3 py-2 text-xs font-semibold tracking-wider rounded-xl transition-all ${
                 providerId === p.id
@@ -335,8 +333,8 @@ export default function App() {
                 value={serverSearch}
                 onChange={e => { setServerSearch(e.target.value); setServerDropdownOpen(true); }}
                 onFocus={() => setServerDropdownOpen(true)}
-                placeholder={serversLoading ? 'Loading servers...' : serversRanking ? 'Ranking...' : `Search ${servers.length} servers...`}
-                disabled={isActive || serversLoading || serversRanking}
+                placeholder={serversLoading ? 'Loading servers...' : `Search ${servers.length} servers...`}
+                disabled={isActive || serversLoading}
                 className={`flex-1 bg-transparent outline-none placeholder:text-[10px] ${dark ? 'placeholder-white/20 text-white/80' : 'placeholder-gray-400 text-gray-800'}`}
               />
               {selectedServer && !serverSearch && !serverDropdownOpen && (
@@ -361,14 +359,7 @@ export default function App() {
                           : dark ? 'text-white/60 hover:bg-white/[0.04]' : 'text-gray-600 hover:bg-gray-50'
                       }`}
                     >
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="truncate">{s.sponsor ? `${s.name} — ${s.sponsor}` : s.name}</span>
-                        {serverLatencies.has(s.id) && (
-                          <span className={`shrink-0 text-[9px] font-semibold tabular-nums ${dark ? 'text-white/25' : 'text-gray-400'}`}>
-                            {serverLatencies.get(s.id)!.toFixed(0)}ms
-                          </span>
-                        )}
-                      </div>
+                      <span className="block truncate">{s.sponsor ? `${s.name} — ${s.sponsor}` : s.name}</span>
                       <span className={`block truncate text-[9px] mt-0.5 ${dark ? 'text-white/20' : 'text-gray-400'}`}>{s.host}</span>
                     </button>
                   ))}
@@ -381,11 +372,8 @@ export default function App() {
           </div>
         )}
 
-        {serversLoading && !serversRanking && (
+        {serversLoading && (
           <span className={`text-[10px] tracking-wider ${dark ? 'text-white/30' : 'text-gray-400'}`}>Loading servers...</span>
-        )}
-        {serversRanking && (
-          <span className={`text-[10px] tracking-wider animate-pulse ${dark ? 'text-amber-400/60' : 'text-amber-600'}`}>Ranking servers by latency...</span>
         )}
 
         <div className="relative h-48 sm:h-56 w-full">
@@ -401,7 +389,7 @@ export default function App() {
           color={isActive ? 'danger' : 'accent'}
           size="lg"
           onPress={isActive ? handleAbort : handleStart}
-          isDisabled={(!isActive && running) || serversLoading || serversRanking || !selectedServer}
+          isDisabled={(!isActive && running) || serversLoading || !selectedServer}
           className="min-w-[180px] h-14 text-base font-semibold tracking-wide rounded-full"
         >
           {isActive ? 'Abort' : testData.phase === 'complete' ? 'Test Again' : 'Start Test'}
