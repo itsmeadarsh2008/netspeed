@@ -28,10 +28,10 @@ function fmtSpeedBytes(value: number): string {
   return (mbps / 1000).toFixed(1);
 }
 
-const row = (label: string, value: string, dark: boolean) => (
+const row = (label: string, value: string, dark: boolean, color?: string) => (
   <div className="flex items-center justify-between py-1.5">
     <span className={`text-xs ${dark ? 'text-white/35' : 'text-gray-500'} tracking-wider transition-colors duration-200`}>{label}</span>
-    <span className={`text-sm font-medium ${dark ? 'text-white/70' : 'text-gray-700'} tabular-nums tracking-tight transition-all duration-200`}>{value}</span>
+    <span className={`text-sm font-medium tabular-nums tracking-tight transition-all duration-200 ${color ? color : dark ? 'text-white/70' : 'text-gray-700'}`}>{value}</span>
   </div>
 );
 
@@ -490,12 +490,12 @@ export default function App() {
                   )}
                 </div>
                 <div className="px-4 pb-4">
-                  {row('Download', testData.downloadSpeed > 0 ? `${fmtSpeed(unit(testData.downloadSpeed))} ${unitLabel}` : '--', dark)}
-                  {row('Upload', testData.uploadSpeed > 0 ? `${fmtSpeed(unit(testData.uploadSpeed))} ${unitLabel}` : '--', dark)}
-                  {row('Ping', testData.ping > 0 ? `${testData.ping.toFixed(1)} ms` : '--', dark)}
-                  {row('Jitter', testData.jitter > 0 ? `${testData.jitter.toFixed(1)} ms` : '--', dark)}
-                  {testData.phase !== 'idle' && row('Packet Loss', testData.packetLoss > 0 ? `${testData.packetLoss.toFixed(1)}%` : '0%', dark)}
-                  {testData.loadedLatency > 0 && row('Loaded Latency', `${testData.loadedLatency.toFixed(1)} ms`, dark)}
+                  {row('Download', testData.downloadSpeed > 0 ? `${fmtSpeed(unit(testData.downloadSpeed))} ${unitLabel}` : '--', dark, 'dark:text-cyan-400')}
+                  {row('Upload', testData.uploadSpeed > 0 ? `${fmtSpeed(unit(testData.uploadSpeed))} ${unitLabel}` : '--', dark, 'dark:text-amber-400')}
+                  {row('Ping', testData.ping > 0 ? `${testData.ping.toFixed(1)} ms` : '--', dark, 'dark:text-green-400')}
+                  {row('Jitter', testData.jitter > 0 ? `${testData.jitter.toFixed(1)} ms` : '--', dark, 'dark:text-purple-400')}
+                  {testData.phase !== 'idle' && row('Packet Loss', testData.packetLoss > 0 ? `${testData.packetLoss.toFixed(1)}%` : '0%', dark, 'dark:text-rose-400')}
+                  {testData.loadedLatency > 0 && row('Loaded Latency', `${testData.loadedLatency.toFixed(1)} ms`, dark, 'dark:text-yellow-400')}
                   {testData.serverName && (() => {
                     const paren = testData.serverName.indexOf(' (');
                     if (paren !== -1) {
