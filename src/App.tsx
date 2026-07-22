@@ -243,70 +243,15 @@ export default function App() {
 
   const isActive = testData.phase === 'discovering' || testData.phase === 'ping' || testData.phase === 'download' || testData.phase === 'upload';
 
-  const [pullProgress, setPullProgress] = useState(0);
-  const pullRef = useRef({ progress: 0, startY: 0, pulling: false, armed: false, isActive: false });
+  const autoStarted = useRef(false);
 
   useEffect(() => {
-    const deadzone = 5;
-    const damping = 0.5;
-    const threshold = 50;
-    const ref = pullRef.current;
-
-    const start = (clientY: number) => {
-      if (window.scrollY > 0 || ref.isActive) return;
-      ref.startY = clientY;
-      ref.pulling = true;
-      ref.armed = false;
-    };
-
-    const move = (clientY: number) => {
-      if (!ref.pulling) return;
-      const diff = clientY - ref.startY;
-      if (diff <= deadzone) { ref.armed = false; return; }
-      ref.armed = true;
-      const damped = Math.min((diff - deadzone) * damping, threshold);
-      ref.progress = damped / threshold;
-      setPullProgress(ref.progress);
-    };
-
-    const end = () => {
-      if (!ref.pulling) return;
-      ref.pulling = false;
-      if (ref.progress >= 0.8 && ref.armed) handleStartRef.current();
-      ref.progress = 0;
-      setPullProgress(0);
-    };
-
-    const onTouchStart = (e: TouchEvent) => start(e.touches[0].clientY);
-    const onTouchMove = (e: TouchEvent) => move(e.touches[0].clientY);
-    const onTouchEnd = () => end();
-    const onMouseDown = (e: MouseEvent) => start(e.clientY);
-    const onMouseMove = (e: MouseEvent) => { if (e.buttons > 0) move(e.clientY); };
-    const onMouseUp = () => end();
-
-    document.addEventListener('touchstart', onTouchStart, { passive: true });
-    document.addEventListener('touchmove', onTouchMove, { passive: true });
-    document.addEventListener('touchend', onTouchEnd, { passive: true });
-    document.addEventListener('mousedown', onMouseDown);
-    document.addEventListener('mousemove', onMouseMove);
-    document.addEventListener('mouseup', onMouseUp);
-
-    return () => {
-      document.removeEventListener('touchstart', onTouchStart);
-      document.removeEventListener('touchmove', onTouchMove);
-      document.removeEventListener('touchend', onTouchEnd);
-      document.removeEventListener('mousedown', onMouseDown);
-      document.removeEventListener('mousemove', onMouseMove);
-      document.removeEventListener('mouseup', onMouseUp);
-    };
-  }, []);
-
-  const handleStartRef = useRef(handleStart);
-  handleStartRef.current = handleStart;
-
-  useEffect(() => {
-    pullRef.current.isActive = isActive;
-  }, [isActive]);
+    if (autoStarted.current) return;
+    if (!selectedServer || serversLoading) return;
+    if (isActive) return;
+    autoStarted.current = true;
+    handleStart();
+  }, [selectedServer, serversLoading, isActive, handleStart]);
 
   const unit = (v: number) => unitMbps ? v : v / 8;
   const unitLabel = unitMbps ? 'Mbps' : 'MB/s';
@@ -381,16 +326,6 @@ export default function App() {
     <div
       className={`min-h-screen ${dark ? 'dark bg-[#0a0a0f]' : 'bg-gray-50'} antialiased font-sans transition-colors`}
     >
-      {pullProgress > 0 && (
-        <div className="fixed top-0 left-0 right-0 z-50 flex justify-center pointer-events-none" style={{ transform: `translateY(${(pullProgress - 1) * 50}px)` }}>
-          <div className={`flex items-center gap-2 px-5 py-2.5 rounded-full shadow-lg backdrop-blur-md transition-colors ${pullProgress >= 0.8 ? 'bg-blue-500/20 border border-blue-400/30' : 'bg-white/10 border border-white/20'}`}>
-            <ArrowDown size={14} strokeWidth={3} className={`transition-transform duration-200 ${pullProgress >= 0.8 ? 'rotate-180' : ''}`} />
-            <span className={`text-xs font-semibold tracking-wide ${pullProgress >= 0.8 ? 'text-blue-300' : 'text-white/70'}`}>
-              {pullProgress >= 0.8 ? 'Release to start' : 'Pull to test'}
-            </span>
-          </div>
-        </div>
-      )}
       {showSettings && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-3 sm:p-4" onClick={() => setShowSettings(false)}>
           <Card variant={dark ? 'shadow' : 'flat'} className={`w-full max-w-xs sm:max-w-sm max-h-[90vh] overflow-y-auto ${dark ? 'bg-[#12121a]' : 'bg-white'}`} onClick={e => e.stopPropagation()}>
