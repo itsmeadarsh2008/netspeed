@@ -1,16 +1,36 @@
 import type { SpeedtestProvider, ProviderServer, SpeedtestUpdate, SpeedtestResult, TestPhase, SpeedtestSettings } from './types';
 
-interface LibreSpeedServer {
+interface LibreSpeedEntry {
   name: string;
   server: string;
-  sponsor?: string;
-  country?: string;
-  cc?: string;
-  lat?: number;
-  lon?: number;
+  dlURL: string;
+  ulURL: string;
+  pingURL: string;
+  sponsorName: string;
 }
 
-const SERVER_LIST_URL = 'https://librespeed.org/backend-servers/servers.php';
+const EMBEDDED_SERVERS: LibreSpeedEntry[] = [
+  { name: 'Amsterdam, Netherlands (Clouvider)', server: 'https://ams.speedtest.clouvider.net/backend', dlURL: 'garbage.php', ulURL: 'empty.php', pingURL: 'empty.php', sponsorName: 'Clouvider' },
+  { name: 'Amsterdam, Netherlands (Sharktech)', server: 'https://amsspeed.sharktech.net', dlURL: 'backend/garbage.php', ulURL: 'backend/empty.php', pingURL: 'backend/empty.php', sponsorName: 'Sharktech' },
+  { name: 'Argalasti, Magnesia, Greece (Cosmote)', server: 'https://argalasti.skoultsos.eu/', dlURL: 'backend/garbage.php', ulURL: 'backend/empty.php', pingURL: 'backend/empty.php', sponsorName: 'skoultsos.eu' },
+  { name: 'Atlanta, United States (Clouvider)', server: 'https://atl.speedtest.clouvider.net/backend', dlURL: 'garbage.php', ulURL: 'empty.php', pingURL: 'empty.php', sponsorName: 'Clouvider' },
+  { name: 'Chicago, USA (Sharktech)', server: 'https://chispeed.sharktech.net', dlURL: 'backend/garbage.php', ulURL: 'backend/empty.php', pingURL: 'backend/empty.php', sponsorName: 'Sharktech' },
+  { name: 'Denver, USA (Sharktech)', server: 'https://denspeed.sharktech.net', dlURL: 'backend/garbage.php', ulURL: 'backend/empty.php', pingURL: 'backend/empty.php', sponsorName: 'Sharktech' },
+  { name: 'Frankfurt, Germany (Clouvider)', server: 'https://fra.speedtest.clouvider.net/backend', dlURL: 'garbage.php', ulURL: 'empty.php', pingURL: 'empty.php', sponsorName: 'Clouvider' },
+  { name: 'Grand Rapids, Michigan (RackGenius)', server: 'https://mispeed.rackgenius.com/', dlURL: 'backend/garbage.php', ulURL: 'backend/empty.php', pingURL: 'backend/empty.php', sponsorName: 'RackGenius' },
+  { name: 'Helsinki, Finland (Hetzner)', server: 'https://www.librespeed.fi/', dlURL: 'backend/garbage.php', ulURL: 'backend/empty.php', pingURL: 'backend/empty.php', sponsorName: 'Pekka Jalonen' },
+  { name: 'Las Vegas, USA (Sharktech)', server: 'https://lvspeed.sharktech.net', dlURL: 'backend/garbage.php', ulURL: 'backend/empty.php', pingURL: 'backend/empty.php', sponsorName: 'Sharktech' },
+  { name: 'London, England (Clouvider)', server: 'https://lon.speedtest.clouvider.net/backend', dlURL: 'garbage.php', ulURL: 'empty.php', pingURL: 'empty.php', sponsorName: 'Clouvider' },
+  { name: 'Los Angeles, United States (1) (Clouvider)', server: 'https://lax.speedtest.clouvider.net/backend', dlURL: 'garbage.php', ulURL: 'empty.php', pingURL: 'empty.php', sponsorName: 'Clouvider' },
+  { name: 'Los Angeles, USA (Sharktech)', server: 'https://laspeed.sharktech.net', dlURL: 'backend/garbage.php', ulURL: 'backend/empty.php', pingURL: 'backend/empty.php', sponsorName: 'Sharktech' },
+  { name: 'New York, United States (2) (Clouvider)', server: 'https://nyc.speedtest.clouvider.net/backend', dlURL: 'garbage.php', ulURL: 'empty.php', pingURL: 'empty.php', sponsorName: 'Clouvider' },
+  { name: 'Novi Sad, Vojvodina, Serbia (E-CAPS.net)', server: 'https://novisad.ecaps.net/', dlURL: 'backend/garbage.php', ulURL: 'backend/empty.php', pingURL: 'backend/empty.php', sponsorName: 'E-CAPS.net' },
+  { name: 'Poznan, Poland (INEA)', server: 'https://speedtest.inea.pl/', dlURL: 'backend/garbage.php', ulURL: 'backend/empty.php', pingURL: 'backend/empty.php', sponsorName: 'INEA' },
+  { name: 'Prague, Czech Republic (CESNET)', server: 'https://speedtest.cesnet.cz/', dlURL: 'backend/garbage.php', ulURL: 'backend/empty.php', pingURL: 'backend/empty.php', sponsorName: 'CESNET' },
+  { name: 'Prague, Czech Republic (Turris)', server: 'https://librespeed.turris.cz/', dlURL: 'backend/garbage.php', ulURL: 'backend/empty.php', pingURL: 'backend/empty.php', sponsorName: 'Turris' },
+  { name: 'Roma, Italy (GARR)', server: 'https://st-be-rm1.infra.garr.it', dlURL: 'garbage.php', ulURL: 'empty.php', pingURL: 'empty.php', sponsorName: 'Consortium GARR' },
+  { name: 'Tokyo, Japan (A573)', server: 'https://tokyo.5733.network/', dlURL: 'backend/garbage.php', ulURL: 'backend/empty.php', pingURL: 'backend/empty.php', sponsorName: 'A573' },
+];
 
 async function xhrGet(url: string, signal: AbortSignal, onProgress?: (n: number) => void): Promise<void> {
   return new Promise((resolve, reject) => {
@@ -67,22 +87,25 @@ export const librespeedProvider: SpeedtestProvider = {
       try { return JSON.parse(cached); } catch {}
     }
     try {
-      const resp = await fetch(SERVER_LIST_URL, { signal: AbortSignal.timeout(10000) });
-      const list: LibreSpeedServer[] = await resp.json();
+      const resp = await fetch('https://librespeed.org/backend-servers/servers.php', { signal: AbortSignal.timeout(5000) });
+      const list: any[] = await resp.json();
       const servers = list.map((s, i) => ({
         id: `librespeed-${i}`,
-        name: s.sponsor ? `${s.name} (${s.sponsor})` : s.name,
+        name: s.sponsorName ? `${s.name} (${s.sponsorName})` : s.name,
         host: s.server.replace(/\/+$/, ''),
-        sponsor: s.sponsor || 'LibreSpeed',
-        country: s.country || s.cc,
-        lat: s.lat,
-        lon: s.lon,
+        sponsor: s.sponsorName || 'LibreSpeed',
         provider: 'librespeed' as const,
       }));
       sessionStorage.setItem('librespeed-servers', JSON.stringify(servers));
       return servers;
     } catch {
-      return [];
+      return EMBEDDED_SERVERS.map((s, i) => ({
+        id: `librespeed-${i}`,
+        name: s.sponsorName ? `${s.name} (${s.sponsorName})` : s.name,
+        host: s.server.replace(/\/+$/, ''),
+        sponsor: s.sponsorName || 'LibreSpeed',
+        provider: 'librespeed' as const,
+      }));
     }
   },
 
@@ -92,6 +115,11 @@ export const librespeedProvider: SpeedtestProvider = {
     signal: AbortSignal,
     settings?: SpeedtestSettings,
   ): Promise<SpeedtestResult> {
+    const entry = [...EMBEDDED_SERVERS].find(s => server.host === s.server.replace(/\/+$/, ''));
+    const dlPath = entry?.dlURL || 'garbage.php';
+    const ulPath = entry?.ulURL || 'empty.php';
+    const pingPath = entry?.pingURL || 'empty.php';
+
     const base = server.host;
     const DL_STREAMS = settings?.dlStreams ?? 3;
     const UL_STREAMS = settings?.ulStreams ?? 3;
@@ -130,7 +158,7 @@ export const librespeedProvider: SpeedtestProvider = {
       if (signal.aborted) return { download: 0, upload: 0, ping: 0, jitter: 0, packetLoss: 0, loadedLatency: 0 };
       const start = performance.now();
       try {
-        await xhrGet(`${base}/empty.php?cors=true&r=${rand()}`, AbortSignal.timeout(3000));
+        await xhrGet(`${base}/${pingPath}?cors=true&r=${rand()}`, AbortSignal.timeout(3000));
         pings.push(performance.now() - start);
       } catch {
         pingFailures++;
@@ -158,7 +186,7 @@ export const librespeedProvider: SpeedtestProvider = {
       const runStream = async () => {
         while (!signal.aborted && !streamSignal.signal.aborted) {
           try {
-            await xhrGet(`${base}/garbage.php?cors=true&ckSize=${CK_SIZE}&r=${rand()}`, streamSignal.signal, onBytes);
+            await xhrGet(`${base}/${dlPath}?cors=true&ckSize=${CK_SIZE}&r=${rand()}`, streamSignal.signal, onBytes);
           } catch {
             if (signal.aborted || streamSignal.signal.aborted) return;
           }
@@ -192,7 +220,7 @@ export const librespeedProvider: SpeedtestProvider = {
       const runStream = async () => {
         while (!signal.aborted && !streamSignal.signal.aborted) {
           try {
-            await xhrPost(`${base}/empty.php?cors=true&r=${rand()}`, payload, streamSignal.signal, onBytes);
+            await xhrPost(`${base}/${ulPath}?cors=true&r=${rand()}`, payload, streamSignal.signal, onBytes);
           } catch {
             if (signal.aborted || streamSignal.signal.aborted) return;
           }
