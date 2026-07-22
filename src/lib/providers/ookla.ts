@@ -383,11 +383,17 @@ export const ooklaProvider: SpeedtestProvider = {
     emit('ping', { ping, jitter, packetLoss, pingProgress: 1, serverName: server.name });
     if (signal.aborted) return { download: 0, upload: 0, ping, jitter, packetLoss, loadedLatency: 0 };
 
+    // --- Download ---
+    let dlBytes = 0;
+    let dlFirst = 0;
+    let dlPrevBytes = 0;
+    let dlPrevElapsed = 0;
     {
       const streamSignal = new AbortController();
-      let totalBytes = 0;
-      const startTime = performance.now();
-      const onBytes = (n: number) => { totalBytes += n; };
+      const onBytes = (n: number) => {
+        dlBytes += n;
+        if (!dlFirst) dlFirst = performance.now();
+      };
       const streams = Array.from({ length: dlStreams }, () =>
         runDownloadStream(host, onBytes, streamSignal.signal, dlChunk).catch(() => {}),
       );
@@ -395,24 +401,36 @@ export const ooklaProvider: SpeedtestProvider = {
       await new Promise<void>((resolve) => {
         const interval = setInterval(() => {
           if (signal.aborted) { streamSignal.abort(); clearInterval(interval); resolve(); return; }
-          const elapsed = (performance.now() - startTime) / 1000;
-          const mb = totalBytes / 1_000_000;
-          const speed = elapsed > 0 ? (mb * 8) / elapsed : 0;
-          dlSamples.push(speed);
-          emit('download', { downloadSpeed: speed, dlProgress: Math.min(elapsed / (dlDuration / 1000), 1), ping, jitter, packetLoss, serverName: server.name });
-          if (elapsed >= dlDuration / 1000) { streamSignal.abort(); clearInterval(interval); resolve(); }
+          const now = performance.now();
+          if (dlFirst) {
+            const elapsed = (now - dlFirst) / 1000;
+            const dt = (now - (dlPrevElapsed ? (dlFirst + dlPrevElapsed * 1000) : dlFirst)) / 1000;
+            const db = dlBytes - dlPrevBytes;
+            if (dt > 0.01) dlSamples.push((db / 1_000_000 * 8) / dt);
+            dlPrevBytes = dlBytes;
+            dlPrevElapsed = elapsed;
+          }
+          const avg = dlFirst ? (dlBytes / 1_000_000 * 8) / ((now - dlFirst) / 1000) : 0;
+          emit('download', { downloadSpeed: avg, dlProgress: dlFirst ? Math.min(((now - dlFirst) / 1000) / (dlDuration / 1000), 1) : 0, ping, jitter, packetLoss, serverName: server.name });
+          if (dlFirst && ((now - dlFirst) / 1000) >= dlDuration / 1000) { streamSignal.abort(); clearInterval(interval); resolve(); }
         }, 200);
       });
       await Promise.all(streams);
     }
 
-    if (signal.aborted) return { download: dlSamples[dlSamples.length - 1] || 0, upload: 0, ping, jitter, packetLoss, loadedLatency: 0 };
+    if (signal.aborted) return { download: dlSamples.length > 0 ? dlSamples[dlSamples.length - 1] : 0, upload: 0, ping, jitter, packetLoss, loadedLatency: 0 };
 
+    // --- Upload ---
+    let ulBytes = 0;
+    let ulFirst = 0;
+    let ulPrevBytes = 0;
+    let ulPrevElapsed = 0;
     {
       const streamSignal = new AbortController();
-      let totalBytes = 0;
-      const startTime = performance.now();
-      const onBytes = (n: number) => { totalBytes += n; };
+      const onBytes = (n: number) => {
+        ulBytes += n;
+        if (!ulFirst) ulFirst = performance.now();
+      };
       const streams = Array.from({ length: ulStreams }, () =>
         runUploadStream(host, onBytes, streamSignal.signal, ulChunk).catch(() => {}),
       );
@@ -420,19 +438,27 @@ export const ooklaProvider: SpeedtestProvider = {
       await new Promise<void>((resolve) => {
         const interval = setInterval(() => {
           if (signal.aborted) { streamSignal.abort(); clearInterval(interval); resolve(); return; }
-          const elapsed = (performance.now() - startTime) / 1000;
-          const mb = totalBytes / 1_000_000;
-          const speed = elapsed > 0 ? (mb * 8) / elapsed : 0;
-          ulSamples.push(speed);
-          emit('upload', { uploadSpeed: speed, ulProgress: Math.min(elapsed / (ulDuration / 1000), 1), ping, jitter, packetLoss, serverName: server.name });
-          if (elapsed >= ulDuration / 1000) { streamSignal.abort(); clearInterval(interval); resolve(); }
+          const now = performance.now();
+          if (ulFirst) {
+            const elapsed = (now - ulFirst) / 1000;
+            const dt = (now - (ulPrevElapsed ? (ulFirst + ulPrevElapsed * 1000) : ulFirst)) / 1000;
+            const db = ulBytes - ulPrevBytes;
+            if (dt > 0.01) ulSamples.push((db / 1_000_000 * 8) / dt);
+            ulPrevBytes = ulBytes;
+            ulPrevElapsed = elapsed;
+          }
+          const avg = ulFirst ? (ulBytes / 1_000_000 * 8) / ((now - ulFirst) / 1000) : 0;
+          emit('upload', { uploadSpeed: avg, ulProgress: ulFirst ? Math.min(((now - ulFirst) / 1000) / (ulDuration / 1000), 1) : 0, ping, jitter, packetLoss, serverName: server.name });
+          if (ulFirst && ((now - ulFirst) / 1000) >= ulDuration / 1000) { streamSignal.abort(); clearInterval(interval); resolve(); }
         }, 200);
       });
       await Promise.all(streams);
     }
 
-    const finalDl = dlSamples.length > 0 ? dlSamples[dlSamples.length - 1] : 0;
-    const finalUl = ulSamples.length > 0 ? ulSamples[ulSamples.length - 1] : 0;
+    const dlElapsed = dlFirst ? (performance.now() - dlFirst) / 1000 : 1;
+    const ulElapsed = ulFirst ? (performance.now() - ulFirst) / 1000 : 1;
+    const finalDl = dlBytes > 0 ? (dlBytes / 1_000_000 * 8) / dlElapsed : 0;
+    const finalUl = ulBytes > 0 ? (ulBytes / 1_000_000 * 8) / ulElapsed : 0;
 
     emit('complete', { downloadSpeed: finalDl, uploadSpeed: finalUl, ping, jitter, packetLoss, serverName: server.name });
     return { download: finalDl, upload: finalUl, ping, jitter, packetLoss, loadedLatency: 0 };

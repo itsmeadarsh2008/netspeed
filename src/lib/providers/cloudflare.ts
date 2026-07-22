@@ -1,53 +1,30 @@
 import type { SpeedtestProvider, ProviderServer, SpeedtestUpdate, SpeedtestResult, TestPhase, SpeedtestSettings } from './types';
 
 const BASE = 'https://speed.cloudflare.com';
-const DL_CHUNK = 10_000_000;
-const UL_CHUNK = 1_000_000;
 
-async function fetchWithProgress(
-  url: string,
-  onBytes: (n: number) => void,
-  signal: AbortSignal,
-): Promise<void> {
-  const res = await fetch(url, { signal, cache: 'no-store' });
-  if (!res.ok || !res.body) throw new Error('fetch failed');
-  const reader = res.body.getReader();
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    onBytes(value.length);
-  }
-}
-
-async function runDownloadStreamCf(
-  onBytes: (n: number) => void,
-  signal: AbortSignal,
-): Promise<void> {
+async function runDownloadStreamCf(onBytes: (n: number) => void, signal: AbortSignal): Promise<void> {
   try {
-    while (!signal.aborted) {
-      await fetchWithProgress(`${BASE}/__down?bytes=${DL_CHUNK}`, onBytes, signal);
+    const response = await fetch(`${BASE}/__down?bytes=50000000`, { cache: 'no-store', signal });
+    if (!response.ok || !response.body) return;
+    const reader = response.body.getReader();
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) return;
+      onBytes(value.byteLength);
     }
   } catch {
     if (signal.aborted) return;
   }
 }
 
-async function runUploadStreamCf(
-  onBytes: (n: number) => void,
-  signal: AbortSignal,
-): Promise<void> {
+async function runUploadStreamCf(onBytes: (n: number) => void, signal: AbortSignal): Promise<void> {
   try {
-    const payload = new ArrayBuffer(UL_CHUNK);
-    while (!signal.aborted) {
-      const start = performance.now();
-      await fetch(`${BASE}/__up`, {
-        method: 'POST',
-        body: payload,
-        signal,
-        cache: 'no-store',
-      });
-      onBytes(UL_CHUNK);
-    }
+    const payload = new Uint8Array(100000);
+    const blob = new Blob([payload]);
+    const response = await fetch(`${BASE}/__up`, { method: 'POST', cache: 'no-store', body: blob, signal, duplex: 'half' } as RequestInit);
+    if (!response.ok) return;
+    const total = Number(response.headers.get('x-ms-total') || response.headers.get('content-length') || 100000);
+    onBytes(total);
   } catch {
     if (signal.aborted) return;
   }
@@ -57,15 +34,14 @@ export const cloudflareProvider: SpeedtestProvider = {
   id: 'cloudflare',
   name: 'Cloudflare',
   shortName: 'Cloudflare',
-  description: 'Tests against Cloudflare\'s global edge network (via speed.cloudflare.com)',
+  description: 'Tests against Cloudflare\'s global edge network via HTTP',
 
   async discoverServers(): Promise<ProviderServer[]> {
     return [{
-      id: 'cf',
-      name: 'Cloudflare Global',
+      id: 'cloudflare-auto',
+      name: 'Cloudflare Auto',
       host: 'speed.cloudflare.com',
       sponsor: 'Cloudflare',
-      country: 'Global',
       provider: 'cloudflare',
     }];
   },
@@ -76,8 +52,8 @@ export const cloudflareProvider: SpeedtestProvider = {
     signal: AbortSignal,
     settings?: SpeedtestSettings,
   ): Promise<SpeedtestResult> {
-    const DL_STREAMS = settings?.dlStreams ?? 4;
-    const UL_STREAMS = settings?.ulStreams ?? 4;
+    const DL_STREAMS = settings?.dlStreams ?? 3;
+    const UL_STREAMS = settings?.ulStreams ?? 3;
     const DL_DURATION = settings?.dlDuration ?? 10000;
     const UL_DURATION = settings?.ulDuration ?? 10000;
     const PING_SAMPLES = settings?.pingSamples ?? 6;
@@ -133,11 +109,16 @@ export const cloudflareProvider: SpeedtestProvider = {
     // --- Download ---
     let loadedLatency = 0;
     let pingTick = 0;
+    let dlBytes = 0;
+    let dlFirst = 0;
+    let dlPrevBytes = 0;
+    let dlPrevElapsed = 0;
     {
       const streamSignal = new AbortController();
-      let totalBytes = 0;
-      const startTime = performance.now();
-      const onBytes = (n: number) => { totalBytes += n; };
+      const onBytes = (n: number) => {
+        dlBytes += n;
+        if (!dlFirst) dlFirst = performance.now();
+      };
 
       const streams = Array.from({ length: DL_STREAMS }, () =>
         runDownloadStreamCf(onBytes, streamSignal.signal).catch(() => {}),
@@ -145,47 +126,43 @@ export const cloudflareProvider: SpeedtestProvider = {
 
       await new Promise<void>((resolve) => {
         const interval = setInterval(() => {
-          if (signal.aborted) {
-            streamSignal.abort();
-            clearInterval(interval);
-            resolve();
-            return;
+          if (signal.aborted) { streamSignal.abort(); clearInterval(interval); resolve(); return; }
+          const now = performance.now();
+          if (dlFirst) {
+            const elapsed = (now - dlFirst) / 1000;
+            const dt = (now - (dlPrevElapsed ? (dlFirst + dlPrevElapsed * 1000) : dlFirst)) / 1000;
+            const db = dlBytes - dlPrevBytes;
+            if (dt > 0.01) dlSamples.push((db / 1_000_000 * 8) / dt);
+            dlPrevBytes = dlBytes;
+            dlPrevElapsed = elapsed;
           }
-          const elapsed = (performance.now() - startTime) / 1000;
-          const mb = totalBytes / 1_000_000;
-          const speed = elapsed > 0 ? (mb * 8) / elapsed : 0;
-          dlSamples.push(speed);
+          const avg = dlFirst ? (dlBytes / 1_000_000 * 8) / ((now - dlFirst) / 1000) : 0;
           pingTick++;
           if (pingTick % 4 === 0) {
             fetch(`${BASE}/__down?bytes=1`, { cache: 'no-store', signal: AbortSignal.timeout(2000) })
-              .then(() => { loadedLatency = Math.max(loadedLatency, performance.now() - startTime - elapsed * 1000); })
+              .then(() => { loadedLatency = Math.max(loadedLatency, performance.now() - now); })
               .catch(() => {});
           }
-          emit('download', {
-            downloadSpeed: speed,
-            dlProgress: Math.min(elapsed / (DL_DURATION / 1000), 1),
-            ping, jitter, packetLoss,
-            serverName: server.name,
-          });
-          if (elapsed >= DL_DURATION / 1000) {
-            streamSignal.abort();
-            clearInterval(interval);
-            resolve();
-          }
+          emit('download', { downloadSpeed: avg, dlProgress: dlFirst ? Math.min(((now - dlFirst) / 1000) / (DL_DURATION / 1000), 1) : 0, ping, jitter, packetLoss, serverName: server.name });
+          if (dlFirst && ((now - dlFirst) / 1000) >= DL_DURATION / 1000) { streamSignal.abort(); clearInterval(interval); resolve(); }
         }, 200);
       });
       await Promise.all(streams);
     }
 
-    if (signal.aborted) return { download: dlSamples[dlSamples.length - 1] || 0, upload: 0, ping, jitter, packetLoss, loadedLatency };
+    if (signal.aborted) return { download: dlSamples.length > 0 ? dlSamples[dlSamples.length - 1] : 0, upload: 0, ping, jitter, packetLoss, loadedLatency };
 
     // --- Upload ---
-    pingTick = 0;
+    let ulBytes = 0;
+    let ulFirst = 0;
+    let ulPrevBytes = 0;
+    let ulPrevElapsed = 0;
     {
       const streamSignal = new AbortController();
-      let totalBytes = 0;
-      const startTime = performance.now();
-      const onBytes = (n: number) => { totalBytes += n; };
+      const onBytes = (n: number) => {
+        ulBytes += n;
+        if (!ulFirst) ulFirst = performance.now();
+      };
 
       const streams = Array.from({ length: UL_STREAMS }, () =>
         runUploadStreamCf(onBytes, streamSignal.signal).catch(() => {}),
@@ -193,48 +170,30 @@ export const cloudflareProvider: SpeedtestProvider = {
 
       await new Promise<void>((resolve) => {
         const interval = setInterval(() => {
-          if (signal.aborted) {
-            streamSignal.abort();
-            clearInterval(interval);
-            resolve();
-            return;
+          if (signal.aborted) { streamSignal.abort(); clearInterval(interval); resolve(); return; }
+          const now = performance.now();
+          if (ulFirst) {
+            const elapsed = (now - ulFirst) / 1000;
+            const dt = (now - (ulPrevElapsed ? (ulFirst + ulPrevElapsed * 1000) : ulFirst)) / 1000;
+            const db = ulBytes - ulPrevBytes;
+            if (dt > 0.01) ulSamples.push((db / 1_000_000 * 8) / dt);
+            ulPrevBytes = ulBytes;
+            ulPrevElapsed = elapsed;
           }
-          const elapsed = (performance.now() - startTime) / 1000;
-          const mb = totalBytes / 1_000_000;
-          const speed = elapsed > 0 ? (mb * 8) / elapsed : 0;
-          ulSamples.push(speed);
-          pingTick++;
-          if (pingTick % 4 === 0) {
-            fetch(`${BASE}/__down?bytes=1`, { cache: 'no-store', signal: AbortSignal.timeout(2000) })
-              .then(() => { loadedLatency = Math.max(loadedLatency, performance.now() - startTime - elapsed * 1000); })
-              .catch(() => {});
-          }
-          emit('upload', {
-            uploadSpeed: speed,
-            ulProgress: Math.min(elapsed / (UL_DURATION / 1000), 1),
-            ping, jitter, packetLoss,
-            serverName: server.name,
-          });
-          if (elapsed >= UL_DURATION / 1000) {
-            streamSignal.abort();
-            clearInterval(interval);
-            resolve();
-          }
+          const avg = ulFirst ? (ulBytes / 1_000_000 * 8) / ((now - ulFirst) / 1000) : 0;
+          emit('upload', { uploadSpeed: avg, ulProgress: ulFirst ? Math.min(((now - ulFirst) / 1000) / (UL_DURATION / 1000), 1) : 0, ping, jitter, packetLoss, serverName: server.name });
+          if (ulFirst && ((now - ulFirst) / 1000) >= UL_DURATION / 1000) { streamSignal.abort(); clearInterval(interval); resolve(); }
         }, 200);
       });
       await Promise.all(streams);
     }
 
-    const finalDl = dlSamples.length > 0 ? dlSamples[dlSamples.length - 1] : 0;
-    const finalUl = ulSamples.length > 0 ? ulSamples[ulSamples.length - 1] : 0;
+    const dlElapsed = dlFirst ? (performance.now() - dlFirst) / 1000 : 1;
+    const ulElapsed = ulFirst ? (performance.now() - ulFirst) / 1000 : 1;
+    const finalDl = dlBytes > 0 ? (dlBytes / 1_000_000 * 8) / dlElapsed : 0;
+    const finalUl = ulBytes > 0 ? (ulBytes / 1_000_000 * 8) / ulElapsed : 0;
 
-    emit('complete', {
-      downloadSpeed: finalDl,
-      uploadSpeed: finalUl,
-      ping, jitter, packetLoss,
-      serverName: server.name,
-    });
-
+    emit('complete', { downloadSpeed: finalDl, uploadSpeed: finalUl, ping, jitter, packetLoss, serverName: server.name });
     return { download: finalDl, upload: finalUl, ping, jitter, packetLoss, loadedLatency };
   },
 };
