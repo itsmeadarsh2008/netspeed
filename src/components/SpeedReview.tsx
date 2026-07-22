@@ -60,7 +60,7 @@ function getRecommendations(r: SpeedtestResult, dns: DnsInfo | null): { icon: ty
 function maskIp(ip: string): string {
   const parts = ip.split('.');
   if (parts.length !== 4) return ip;
-  return `***.***.***.${parts[3]}`;
+   return `•••. •••. •••.${parts[3]}`;
 }
 
 export default function SpeedReview({ result, dark, dnsInfo, sensitiveVisible, onToggleSensitive }: ReviewProps) {
