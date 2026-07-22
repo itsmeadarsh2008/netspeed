@@ -500,7 +500,7 @@ export default function App() {
                     const paren = testData.serverName.indexOf(' (');
                     if (paren !== -1) {
                       const sub = testData.serverName.slice(0, paren);
-                      const main = testData.serverName.slice(paren);
+                      const main = testData.serverName.slice(paren + 2, -1);
                       return (
                         <div className="flex items-center justify-between py-1.5">
                           <span className={`text-xs ${dark ? 'text-white/35' : 'text-gray-500'} tracking-wider transition-colors duration-200`}>Server</span>
@@ -554,7 +554,7 @@ export default function App() {
                         const paren = dnsValue.indexOf(' (');
                         if (paren !== -1) {
                           const sub = dnsValue.slice(0, paren);
-                          const main = dnsValue.slice(paren);
+                          const main = dnsValue.slice(paren + 2, -1);
                           return (
                             <div className="flex items-center justify-between py-1.5">
                               <span className={`text-xs ${dark ? 'text-white/35' : 'text-gray-500'} tracking-wider transition-colors duration-200`}>DNS</span>
