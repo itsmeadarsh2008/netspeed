@@ -32,45 +32,21 @@ const EMBEDDED_SERVERS: LibreSpeedEntry[] = [
   { name: 'Tokyo, Japan (A573)', server: 'https://tokyo.5733.network/', dlURL: 'backend/garbage.php', ulURL: 'backend/empty.php', pingURL: 'backend/empty.php', sponsorName: 'A573' },
 ];
 
-async function xhrGet(url: string, signal: AbortSignal, onProgress?: (n: number) => void): Promise<void> {
-  return new Promise((resolve, reject) => {
-    const xhr = new XMLHttpRequest();
-    xhr.responseType = 'arraybuffer';
-    let prev = 0;
-    xhr.onprogress = (e) => {
-      if (onProgress && e.loaded > prev) {
-        onProgress(e.loaded - prev);
-        prev = e.loaded;
-      }
-    };
-    xhr.onload = () => { onProgress?.(xhr.response.byteLength - prev); resolve(); };
-    xhr.onerror = () => reject(new Error('xhr error'));
-    xhr.onabort = () => reject(new Error('aborted'));
-    xhr.open('GET', url);
-    xhr.send();
-    const onAbort = () => { xhr.abort(); };
-    signal.addEventListener('abort', onAbort, { once: true });
-    xhr.onloadend = () => signal.removeEventListener('abort', onAbort);
-  });
+async function streamGet(url: string, signal: AbortSignal, onBytes: (n: number) => void): Promise<void> {
+  const response = await fetch(url, { cache: 'no-store', signal });
+  if (!response.ok || !response.body) return;
+  const reader = response.body.getReader();
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) return;
+    onBytes(value.byteLength);
+  }
 }
 
-async function xhrPost(url: string, body: Blob, signal: AbortSignal, onProgress?: (n: number) => void): Promise<void> {
+async function xhrPostPipeline(url: string, body: Blob, signal: AbortSignal, onBytes: (n: number) => void): Promise<void> {
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
-    let prev = 0;
-    const report = (loaded: number) => {
-      if (loaded > prev) {
-        onProgress?.(loaded - prev);
-        prev = loaded;
-      }
-    };
-    if (xhr.upload) {
-      xhr.upload.onprogress = (e) => report(e.loaded);
-      xhr.upload.onload = () => report(body.size);
-    } else {
-      report(body.size);
-    }
-    xhr.onload = () => resolve();
+    xhr.upload.onload = () => { onBytes(body.size); resolve(); };
     xhr.onerror = () => reject(new Error('xhr error'));
     xhr.onabort = () => reject(new Error('aborted'));
     xhr.open('POST', url);
@@ -107,7 +83,7 @@ export const librespeedProvider: SpeedtestProvider = {
     } catch {
       return EMBEDDED_SERVERS.map((s, i) => ({
         id: `librespeed-${i}`,
-        name: s.sponsorName ? `${s.name} (${s.sponsorName})` : s.name,
+        name: s.name,
         host: s.server.replace(/\/+$/, ''),
         sponsor: s.sponsorName || 'LibreSpeed',
         provider: 'librespeed' as const,
@@ -132,7 +108,6 @@ export const librespeedProvider: SpeedtestProvider = {
     const DL_DURATION = settings?.dlDuration ?? 10000;
     const UL_DURATION = settings?.ulDuration ?? 10000;
     const PING_SAMPLES = settings?.pingSamples ?? 6;
-    const CK_SIZE = 100;
 
     const dlSamples: number[] = [];
     const ulSamples: number[] = [];
@@ -164,7 +139,7 @@ export const librespeedProvider: SpeedtestProvider = {
       if (signal.aborted) return { download: 0, upload: 0, ping: 0, jitter: 0, packetLoss: 0, loadedLatency: 0 };
       const start = performance.now();
       try {
-        await xhrGet(`${base}/${pingPath}?cors=true&r=${rand()}`, AbortSignal.timeout(3000));
+        await fetch(`${base}/${pingPath}?cors=true&r=${rand()}`, { cache: 'no-store', signal: AbortSignal.timeout(3000) });
         pings.push(performance.now() - start);
       } catch {
         pingFailures++;
@@ -188,11 +163,12 @@ export const librespeedProvider: SpeedtestProvider = {
     {
       const streamSignal = new AbortController();
       const onBytes = (n: number) => { dlBytes += n; };
+      const combined = AbortSignal.any ? AbortSignal.any([signal, streamSignal.signal]) : signal;
 
       const runStream = async () => {
         while (!signal.aborted && !streamSignal.signal.aborted) {
           try {
-            await xhrGet(`${base}/${dlPath}?cors=true&ckSize=${CK_SIZE}&r=${rand()}`, streamSignal.signal, onBytes);
+            await streamGet(`${base}/${dlPath}?cors=true&ckSize=200&r=${rand()}`, combined, onBytes);
           } catch {
             if (signal.aborted || streamSignal.signal.aborted) return;
           }
@@ -226,7 +202,7 @@ export const librespeedProvider: SpeedtestProvider = {
       const runStream = async () => {
         while (!signal.aborted && !streamSignal.signal.aborted) {
           try {
-            await xhrPost(`${base}/${ulPath}?cors=true&r=${rand()}`, payload, streamSignal.signal, onBytes);
+            await xhrPostPipeline(`${base}/${ulPath}?cors=true&r=${rand()}`, payload, streamSignal.signal, onBytes);
           } catch {
             if (signal.aborted || streamSignal.signal.aborted) return;
           }
