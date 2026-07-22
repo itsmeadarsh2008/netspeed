@@ -154,7 +154,7 @@ function connectOokla(host: string, secure?: boolean, signal?: AbortSignal): Pro
     let closed = false;
     const timeout = setTimeout(() => {
       if (!closed) { closed = true; ws.close(); reject(new Error('connect timeout')); }
-    }, 5000);
+    }, 3000);
     const cleanup = () => { clearTimeout(timeout); closed = true; };
 
     const onAbort = () => {
@@ -183,11 +183,10 @@ function connectOokla(host: string, secure?: boolean, signal?: AbortSignal): Pro
 }
 
 async function connectOoklaWithFallback(host: string, signal?: AbortSignal): Promise<WebSocket> {
-  const preferSecure = window.location.protocol === 'https:';
   try {
-    return await connectOokla(host, preferSecure, signal);
+    return await connectOokla(host, true, signal);
   } catch {
-    return await connectOokla(host, !preferSecure, signal);
+    return await connectOokla(host, false, signal);
   }
 }
 
@@ -347,12 +346,12 @@ export const ooklaProvider: SpeedtestProvider = {
     settings?: SpeedtestSettings,
   ): Promise<SpeedtestResult> {
     const host = server.host;
-    const dlStreams = settings?.dlStreams ?? 4;
-    const ulStreams = settings?.ulStreams ?? 4;
+    const dlStreams = settings?.dlStreams ?? 3;
+    const ulStreams = settings?.ulStreams ?? 3;
     const dlDuration = settings?.dlDuration ?? 10000;
     const ulDuration = settings?.ulDuration ?? 10000;
-    const dlChunk = settings?.dlChunkSize ?? 5_000_000;
-    const ulChunk = settings?.ulChunkSize ?? 1_000_000;
+    const dlChunk = settings?.dlChunkSize ?? 2_000_000;
+    const ulChunk = settings?.ulChunkSize ?? 500_000;
     const pingSamples = settings?.pingSamples ?? 6;
 
     const dlSamples: number[] = [];
@@ -385,15 +384,10 @@ export const ooklaProvider: SpeedtestProvider = {
 
     // --- Download ---
     let dlBytes = 0;
-    let dlFirst = 0;
-    let dlPrevBytes = 0;
-    let dlPrevElapsed = 0;
+    const dlStart = performance.now();
     {
       const streamSignal = new AbortController();
-      const onBytes = (n: number) => {
-        dlBytes += n;
-        if (!dlFirst) dlFirst = performance.now();
-      };
+      const onBytes = (n: number) => { dlBytes += n; };
       const streams = Array.from({ length: dlStreams }, () =>
         runDownloadStream(host, onBytes, streamSignal.signal, dlChunk).catch(() => {}),
       );
@@ -401,22 +395,11 @@ export const ooklaProvider: SpeedtestProvider = {
       await new Promise<void>((resolve) => {
         const interval = setInterval(() => {
           if (signal.aborted) { streamSignal.abort(); clearInterval(interval); resolve(); return; }
-          const now = performance.now();
-          let liveSpeed = 0;
-          if (dlFirst) {
-            const elapsed = (now - dlFirst) / 1000;
-            const dt = (now - (dlPrevElapsed ? (dlFirst + dlPrevElapsed * 1000) : dlFirst)) / 1000;
-            const db = dlBytes - dlPrevBytes;
-            if (dt > 0.01) {
-              const s = (db / 1_000_000 * 8) / dt;
-              dlSamples.push(s);
-              liveSpeed = s;
-            }
-            dlPrevBytes = dlBytes;
-            dlPrevElapsed = elapsed;
-          }
-          emit('download', { downloadSpeed: liveSpeed, dlProgress: dlFirst ? Math.min(((now - dlFirst) / 1000) / (dlDuration / 1000), 1) : 0, ping, jitter, packetLoss, serverName: server.name });
-          if (dlFirst && ((now - dlFirst) / 1000) >= dlDuration / 1000) { streamSignal.abort(); clearInterval(interval); resolve(); }
+          const elapsed = (performance.now() - dlStart) / 1000;
+          const speed = elapsed > 0.1 ? (dlBytes / 1_000_000 * 8) / elapsed : 0;
+          dlSamples.push(speed);
+          emit('download', { downloadSpeed: speed, dlProgress: Math.min(elapsed / (dlDuration / 1000), 1), ping, jitter, packetLoss, serverName: server.name });
+          if (elapsed >= dlDuration / 1000) { streamSignal.abort(); clearInterval(interval); resolve(); }
         }, 200);
       });
       await Promise.all(streams);
@@ -426,15 +409,10 @@ export const ooklaProvider: SpeedtestProvider = {
 
     // --- Upload ---
     let ulBytes = 0;
-    let ulFirst = 0;
-    let ulPrevBytes = 0;
-    let ulPrevElapsed = 0;
+    const ulStart = performance.now();
     {
       const streamSignal = new AbortController();
-      const onBytes = (n: number) => {
-        ulBytes += n;
-        if (!ulFirst) ulFirst = performance.now();
-      };
+      const onBytes = (n: number) => { ulBytes += n; };
       const streams = Array.from({ length: ulStreams }, () =>
         runUploadStream(host, onBytes, streamSignal.signal, ulChunk).catch(() => {}),
       );
@@ -442,31 +420,18 @@ export const ooklaProvider: SpeedtestProvider = {
       await new Promise<void>((resolve) => {
         const interval = setInterval(() => {
           if (signal.aborted) { streamSignal.abort(); clearInterval(interval); resolve(); return; }
-          const now = performance.now();
-          let liveSpeed = 0;
-          if (ulFirst) {
-            const elapsed = (now - ulFirst) / 1000;
-            const dt = (now - (ulPrevElapsed ? (ulFirst + ulPrevElapsed * 1000) : ulFirst)) / 1000;
-            const db = ulBytes - ulPrevBytes;
-            if (dt > 0.01) {
-              const s = (db / 1_000_000 * 8) / dt;
-              ulSamples.push(s);
-              liveSpeed = s;
-            }
-            ulPrevBytes = ulBytes;
-            ulPrevElapsed = elapsed;
-          }
-          emit('upload', { uploadSpeed: liveSpeed, ulProgress: ulFirst ? Math.min(((now - ulFirst) / 1000) / (ulDuration / 1000), 1) : 0, ping, jitter, packetLoss, serverName: server.name });
-          if (ulFirst && ((now - ulFirst) / 1000) >= ulDuration / 1000) { streamSignal.abort(); clearInterval(interval); resolve(); }
+          const elapsed = (performance.now() - ulStart) / 1000;
+          const speed = elapsed > 0.1 ? (ulBytes / 1_000_000 * 8) / elapsed : 0;
+          ulSamples.push(speed);
+          emit('upload', { uploadSpeed: speed, ulProgress: Math.min(elapsed / (ulDuration / 1000), 1), ping, jitter, packetLoss, serverName: server.name });
+          if (elapsed >= ulDuration / 1000) { streamSignal.abort(); clearInterval(interval); resolve(); }
         }, 200);
       });
       await Promise.all(streams);
     }
 
-    const dlElapsed = dlFirst ? (performance.now() - dlFirst) / 1000 : 1;
-    const ulElapsed = ulFirst ? (performance.now() - ulFirst) / 1000 : 1;
-    const finalDl = dlBytes > 0 ? (dlBytes / 1_000_000 * 8) / dlElapsed : 0;
-    const finalUl = ulBytes > 0 ? (ulBytes / 1_000_000 * 8) / ulElapsed : 0;
+    const finalDl = dlSamples.length > 0 ? dlSamples[dlSamples.length - 1] : 0;
+    const finalUl = ulSamples.length > 0 ? ulSamples[ulSamples.length - 1] : 0;
 
     emit('complete', { downloadSpeed: finalDl, uploadSpeed: finalUl, ping, jitter, packetLoss, serverName: server.name });
     return { download: finalDl, upload: finalUl, ping, jitter, packetLoss, loadedLatency: 0 };
