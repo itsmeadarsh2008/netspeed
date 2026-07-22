@@ -247,26 +247,29 @@ export default function App() {
   const pullStartY = useRef(0);
   const isPulling = useRef(false);
   const pullThreshold = 60;
+  const pullArmed = useRef(false);
 
   const handlePullStart = useCallback((clientY: number) => {
     if (window.scrollY > 0) return;
     if (isActive) return;
     pullStartY.current = clientY;
     isPulling.current = true;
+    pullArmed.current = false;
   }, [isActive]);
 
   const handlePullMove = useCallback((clientY: number) => {
     if (!isPulling.current) return;
     const diff = clientY - pullStartY.current;
-    if (diff <= 0) { setPullProgress(0); return; }
-    const damped = Math.min(diff * 0.4, pullThreshold);
+    if (diff <= 8) { pullArmed.current = false; return; }
+    pullArmed.current = true;
+    const damped = Math.min((diff - 8) * 0.3, pullThreshold);
     setPullProgress(damped / pullThreshold);
   }, []);
 
   const handlePullEnd = useCallback(() => {
     if (!isPulling.current) return;
     isPulling.current = false;
-    if (pullProgress >= 0.8) handleStart();
+    if (pullProgress >= 0.8 && pullArmed.current) handleStart();
     setPullProgress(0);
   }, [pullProgress, handleStart]);
 
@@ -345,6 +348,9 @@ export default function App() {
       onTouchStart={e => handlePullStart(e.touches[0].clientY)}
       onTouchMove={e => handlePullMove(e.touches[0].clientY)}
       onTouchEnd={handlePullEnd}
+      onMouseDown={e => handlePullStart(e.clientY)}
+      onMouseMove={e => e.buttons > 0 && handlePullMove(e.clientY)}
+      onMouseUp={handlePullEnd}
     >
       {pullProgress > 0 && (
         <div className="fixed top-0 left-0 right-0 z-50 flex justify-center pointer-events-none" style={{ transform: `translateY(${(pullProgress - 1) * 60}px)` }}>
