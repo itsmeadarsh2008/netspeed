@@ -499,8 +499,8 @@ export default function App() {
                   {testData.serverName && (() => {
                     const paren = testData.serverName.indexOf(' (');
                     if (paren !== -1) {
-                      const main = testData.serverName.slice(0, paren);
-                      const sub = testData.serverName.slice(paren);
+                      const sub = testData.serverName.slice(0, paren);
+                      const main = testData.serverName.slice(paren);
                       return (
                         <div className="flex items-center justify-between py-1.5">
                           <span className={`text-xs ${dark ? 'text-white/35' : 'text-gray-500'} tracking-wider transition-colors duration-200`}>Server</span>
@@ -553,8 +553,8 @@ export default function App() {
                         const dnsValue = `${dnsInfo.provider} (${sensitiveVisible ? dnsInfo.ip : maskIp(dnsInfo.ip)})`;
                         const paren = dnsValue.indexOf(' (');
                         if (paren !== -1) {
-                          const main = dnsValue.slice(0, paren);
-                          const sub = dnsValue.slice(paren);
+                          const sub = dnsValue.slice(0, paren);
+                          const main = dnsValue.slice(paren);
                           return (
                             <div className="flex items-center justify-between py-1.5">
                               <span className={`text-xs ${dark ? 'text-white/35' : 'text-gray-500'} tracking-wider transition-colors duration-200`}>DNS</span>
