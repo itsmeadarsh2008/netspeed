@@ -18,15 +18,16 @@ async function runDownloadStreamCf(onBytes: (n: number) => void, signal: AbortSi
 }
 
 async function runUploadStreamCf(onBytes: (n: number) => void, signal: AbortSignal): Promise<void> {
-  try {
-    const payload = new Uint8Array(100000);
-    const blob = new Blob([payload]);
-    const response = await fetch(`${BASE}/__up`, { method: 'POST', cache: 'no-store', body: blob, signal, duplex: 'half' } as RequestInit);
-    if (!response.ok) return;
-    const total = Number(response.headers.get('x-ms-total') || response.headers.get('content-length') || 100000);
-    onBytes(total);
-  } catch {
-    if (signal.aborted) return;
+  const chunk = new Uint8Array(1_000_000);
+  while (!signal.aborted) {
+    try {
+      const response = await fetch(`${BASE}/__up`, { method: 'POST', cache: 'no-store', body: chunk, signal });
+      if (!response.ok) return;
+      const total = Number(response.headers.get('x-ms-total') || response.headers.get('content-length') || 1_000_000);
+      onBytes(total);
+    } catch {
+      if (signal.aborted) return;
+    }
   }
 }
 
