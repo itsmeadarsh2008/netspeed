@@ -105,6 +105,9 @@ export async function pickBestServer(
       const start = performance.now();
       if (providerId === 'ookla') {
         await pingOokla(s.host);
+      } else if (providerId === 'librespeed') {
+        const base = s.host.replace(/\/+$/, '');
+        await fetch(`${base}/empty.php?cors=true&r=${Math.random()}`, { cache: 'no-store', signal: AbortSignal.timeout(1500) });
       } else {
         await fetch(`https://${s.host}/__down?bytes=1`, { cache: 'no-store', signal: AbortSignal.timeout(1500) });
       }
