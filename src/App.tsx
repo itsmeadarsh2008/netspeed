@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Button, Card, Switch } from '@heroui/react';
-import { Activity, ArrowDown, ArrowUp, Clock, Download, Eye, EyeOff, Globe, GaugeIcon, Monitor, Moon, Search, Server, Settings, Share2, Sun, WifiOff, X } from 'lucide-react';
+import { Button, ButtonGroup, Card, Switch } from '@heroui/react';
+import { Activity, AlertTriangle, ArrowDown, ArrowUp, Clock, Download, Eye, EyeOff, Globe, GaugeIcon, Heart, Info, Monitor, Moon, Rocket, Search, Server, Settings, Share2, Sun, WifiOff, Wrench, X } from 'lucide-react';
 import { toPng } from 'html-to-image';
 import Gauge from './components/Gauge';
 import SpeedGraph from './components/SpeedGraph';
 import SpeedReview from './components/SpeedReview';
+import DownDetector from './components/DownDetector';
 import type { TestPhase, SpeedtestUpdate, SpeedtestResult, ProviderServer, SpeedtestSettings } from './lib/speedtest';
 import { startSpeedtest, abortSpeedtest, getProviders, getServersForProvider, pickBestServer } from './lib/speedtest';
 import { loadSettings, saveSettings, DEFAULT_SETTINGS } from './lib/settings';
@@ -109,6 +110,8 @@ export default function App() {
   const [dark, setDark] = useState(() => localStorage.getItem('netspeed-theme') !== 'light');
   const [unitMbps, setUnitMbps] = useState(() => localStorage.getItem('netspeed-unit') !== 'MBs');
   const [showSettings, setShowSettings] = useState(false);
+  const [showAbout, setShowAbout] = useState(false);
+  const [activeTab, setActiveTab] = useState<'speedtest' | 'downdetector'>('speedtest');
   const [testData, setTestData] = useState<TestData>(INITIAL);
   const [running, setRunning] = useState(false);
   const [settings, setSettings] = useState<SpeedtestSettings>(() => loadSettings());
@@ -326,6 +329,52 @@ export default function App() {
     <div
       className={`min-h-screen ${dark ? 'dark bg-[#0a0a0f]' : 'bg-gray-50'} antialiased font-sans transition-colors`}
     >
+      {showAbout && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-3 sm:p-4" onClick={() => setShowAbout(false)}>
+          <Card variant={dark ? 'shadow' : 'flat'} className={`w-full max-w-md max-h-[90vh] overflow-y-auto ${dark ? 'bg-[#12121a]' : 'bg-white'}`} onClick={e => e.stopPropagation()}>
+            <Card.Content className="flex flex-col gap-4 sm:gap-5 p-4 sm:p-5">
+              <div className="flex items-center justify-between">
+                <span className={`text-sm font-semibold tracking-tight ${dark ? 'text-white' : 'text-gray-900'}`}>About NetSpeed</span>
+                <button onClick={() => setShowAbout(false)} className={`p-1 ${dark ? 'text-white/40 hover:text-white/70' : 'text-gray-400 hover:text-gray-700'}`}><X size={16} /></button>
+              </div>
+
+              <div className={`text-xs sm:text-sm leading-relaxed ${dark ? 'text-white/60' : 'text-gray-600'}`}>
+                <p className="mb-3">
+                  <span className={`font-semibold ${dark ? 'text-white' : 'text-gray-900'}`}>NetSpeed</span> is a browser-based network speed test toolkit that tests
+                  your connection against <span className="font-semibold">Cloudflare</span>'s global edge network and
+                  <span className="font-semibold"> Ookla/Speedtest.net</span> ISP-hosted servers via WebSocket.
+                  It measures download/upload speed, ping, jitter, and packet loss using parallel streams.
+                  No data leaves your browser — results are not stored or shared.
+                </p>
+
+                <div className={`flex items-center gap-1.5 justify-center py-3 ${dark ? 'text-white/40' : 'text-gray-500'}`}>
+                  <Wrench size={14} />
+                  Built by <a href="https://github.com/itsmeadarsh2008" target="_blank" rel="noopener noreferrer" className={`underline underline-offset-2 ${dark ? 'text-white/50 hover:text-white' : 'text-gray-700 hover:text-gray-900'}`}>Adarsh</a> under <span className="font-semibold">NetSpeed</span>
+                  <Rocket size={14} />
+                </div>
+
+                <div className={`h-px w-full my-3 ${dark ? 'bg-white/[0.06]' : 'bg-gray-200'}`} />
+
+                <div className="flex items-start gap-2">
+                  <AlertTriangle size={16} className="shrink-0 mt-0.5 text-amber-500" />
+                  <p className={dark ? 'text-white/60' : 'text-gray-600'}>
+                    This project requires maintenance for better and accurate speedtesting using 3rd party providers to benchmark internet connections. Hoping some donations to keep the open source alive.
+                  </p>
+                </div>
+
+                <div className="mt-4 flex justify-center">
+                  <a href="https://github.com/sponsors/itsmeadarsh2008" target="_blank" rel="noopener noreferrer" className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-xl transition-colors ${
+                    dark ? 'bg-pink-500/10 text-pink-300 hover:bg-pink-500/20' : 'bg-pink-50 text-pink-600 hover:bg-pink-100'
+                  }`}>
+                    <Heart size={16} fill="currentColor" /> Sponsor on GitHub
+                  </a>
+                </div>
+              </div>
+            </Card.Content>
+          </Card>
+        </div>
+      )}
+
       {showSettings && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-3 sm:p-4" onClick={() => setShowSettings(false)}>
           <Card variant={dark ? 'shadow' : 'flat'} className={`w-full max-w-xs sm:max-w-sm max-h-[90vh] overflow-y-auto ${dark ? 'bg-[#12121a]' : 'bg-white'}`} onClick={e => e.stopPropagation()}>
@@ -385,14 +434,21 @@ export default function App() {
         <header className="w-full flex items-start justify-between">
           <div className="flex flex-col">
             <span className={`flex items-center gap-2 font-semibold tracking-tight ${dark ? 'text-white' : 'text-gray-900'}`}>
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="shrink-0">
-                <path d="M14 3L12 10L18 8L8 21L10 14L4 16L14 3Z" fill={dark ? '#00e5ff' : '#0891b2'} stroke={dark ? '#00e5ff' : '#0891b2'} strokeWidth="0.5" strokeLinejoin="round"/>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="shrink-0">
+                <path d="M4 17c2-3 5-5 8-5s6 2 8 5" stroke={dark ? '#00e5ff' : '#0891b2'} strokeWidth="1.5" strokeLinecap="round" fill="none" />
+                <path d="M4 7c2 3 5 5 8 5s6-2 8-5" stroke={dark ? '#00e5ff' : '#0891b2'} strokeWidth="1.5" strokeLinecap="round" fill="none" opacity="0.4" />
+                <circle cx="12" cy="12" r="2" fill={dark ? '#00e5ff' : '#0891b2'} />
+                <circle cx="12" cy="12" r="5" stroke={dark ? '#00e5ff' : '#0891b2'} strokeWidth="1.5" strokeDasharray="2 3" opacity="0.35" />
               </svg>
               NetSpeed
             </span>
-            <span className={`text-[10px] tracking-wider mt-0.5 ml-7 ${dark ? 'text-white/25' : 'text-gray-400'}`}>built by Adarsh</span>
+            <span className={`text-[10px] tracking-wider mt-0.5 ml-7 ${dark ? 'text-white/25' : 'text-gray-400'}`}>Browser Speed Test</span>
           </div>
           <div className="flex items-center gap-2">
+            <a href="https://github.com/sponsors/itsmeadarsh2008" target="_blank" rel="noopener noreferrer" className={`flex items-center gap-1 px-2 py-1 text-[10px] font-semibold tracking-wider rounded-lg transition-colors ${dark ? 'text-pink-300/70 hover:text-pink-300 hover:bg-white/8' : 'text-pink-500/70 hover:text-pink-500 hover:bg-gray-200'}`} title="Sponsor this project">
+              <span>♥</span>
+              <span>Sponsor</span>
+            </a>
             <button
               onClick={() => setUnitMbps(prev => !prev)}
               className={`px-2 py-1 text-[10px] font-semibold tracking-wider rounded-lg transition-colors ${
@@ -402,29 +458,54 @@ export default function App() {
             >
               {unitLabel}
             </button>
+            <button onClick={() => setShowAbout(true)} className={`p-1.5 rounded-lg transition-colors ${dark ? 'text-white/40 hover:text-white/70 hover:bg-white/8' : 'text-gray-400 hover:text-gray-700 hover:bg-gray-200'}`} title="About"><Info size={18} /></button>
             <button onClick={() => setShowSettings(true)} className={`p-1.5 rounded-lg transition-colors ${dark ? 'text-white/40 hover:text-white/70 hover:bg-white/8' : 'text-gray-400 hover:text-gray-700 hover:bg-gray-200'}`} title="Settings"><Settings size={18} /></button>
             <button onClick={() => setDark(prev => !prev)} className={`p-1.5 rounded-lg transition-colors ${dark ? 'text-white/40 hover:text-white/70 hover:bg-white/8' : 'text-gray-400 hover:text-gray-700 hover:bg-gray-200'}`}>{dark ? <Sun size={18} /> : <Moon size={18} />}</button>
           </div>
         </header>
 
-        <div className="flex items-stretch gap-1.5 w-full">
-          {PROVIDERS.map(p => (
-            <button
-              key={p.id}
-              disabled={isActive}
-              onClick={() => setProviderId(p.id)}
-              className={`flex-1 px-3 py-2 text-xs font-semibold tracking-wider rounded-xl transition-all ${
-                providerId === p.id
-                  ? dark ? 'bg-white/10 text-white shadow-sm' : 'bg-gray-900 text-white shadow-sm'
-                  : dark ? 'bg-white/[0.03] text-white/40 hover:text-white/70 hover:bg-white/[0.06]' : 'bg-gray-100 text-gray-500 hover:text-gray-700 hover:bg-gray-200'
-              }`}
-            >
-              {p.shortName}
-            </button>
-          ))}
+        <div className={`flex items-stretch gap-1 w-full rounded-xl p-0.5 ${dark ? 'bg-white/[0.03]' : 'bg-gray-100'}`}>
+          <button
+            onClick={() => setActiveTab('speedtest')}
+            className={`flex-1 px-3 py-1.5 text-xs font-semibold tracking-wider rounded-lg transition-all ${
+              activeTab === 'speedtest'
+                ? dark ? 'bg-white/10 text-white shadow-sm' : 'bg-white text-gray-900 shadow-sm'
+                : dark ? 'text-white/40 hover:text-white/70' : 'text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            Speed Test
+          </button>
+          <button
+            onClick={() => setActiveTab('downdetector')}
+            className={`flex-1 px-3 py-1.5 text-xs font-semibold tracking-wider rounded-lg transition-all ${
+              activeTab === 'downdetector'
+                ? dark ? 'bg-white/10 text-white shadow-sm' : 'bg-white text-gray-900 shadow-sm'
+                : dark ? 'text-white/40 hover:text-white/70' : 'text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            Down Detector
+          </button>
         </div>
 
-        {servers.length > 1 && (
+        <div style={{ display: activeTab === 'speedtest' ? '' : 'none' }}>
+          <ButtonGroup fullWidth size="sm" variant="tertiary">
+            {PROVIDERS.map(p => (
+              <Button
+                key={p.id}
+                isDisabled={isActive}
+                onPress={() => setProviderId(p.id)}
+                className={`${providerId === p.id
+                  ? dark ? 'bg-white/10 text-white shadow-sm' : 'bg-gray-900 text-white shadow-sm'
+                  : ''} text-xs font-semibold tracking-wider`}
+              >
+                {p.shortName}
+              </Button>
+            ))}
+          </ButtonGroup>
+        </div>
+
+        <div style={{ display: activeTab === 'speedtest' ? '' : 'none' }}>
+          {servers.length > 1 && (
           <div className="w-full relative">
             <div className={`flex items-center gap-2 px-3 py-2.5 text-xs font-medium rounded-xl transition-colors ${
               dark ? 'bg-white/[0.03] text-white/70 border border-white/[0.06]' : 'bg-gray-100 text-gray-700 border border-gray-200'
@@ -472,179 +553,175 @@ export default function App() {
               </>
             )}
           </div>
-        )}
+          )}
 
-        {serversLoading && (
+          {serversLoading && (
           <span className={`text-[10px] tracking-wider ${dark ? 'text-white/30' : 'text-gray-400'}`}>Loading servers...</span>
-        )}
+          )}
 
-        <div className="w-full grid grid-cols-1 lg:grid-cols-3 gap-5 lg:gap-6 items-start">
-          <div className="lg:col-span-2 flex flex-col gap-5">
-            <div className="relative h-48 sm:h-56 lg:h-60 w-full">
-              <div className="absolute inset-0 rounded-xl overflow-hidden">
-                <SpeedGraph download={unitMbps ? testData.downloadSamples : testData.downloadSamples.map(s => s / 8)} upload={unitMbps ? testData.uploadSamples : testData.uploadSamples.map(s => s / 8)} packetLoss={testData.packetLoss} dark={dark} unit={unitLabel} />
+          <div className="w-full grid grid-cols-1 lg:grid-cols-3 gap-5 lg:gap-6 items-start">
+            <div className="lg:col-span-2 flex flex-col gap-5">
+              <div className="relative h-48 sm:h-56 lg:h-60 w-full">
+                <div className="absolute inset-0 rounded-xl overflow-hidden">
+                  <SpeedGraph download={unitMbps ? testData.downloadSamples : testData.downloadSamples.map(s => s / 8)} upload={unitMbps ? testData.uploadSamples : testData.uploadSamples.map(s => s / 8)} packetLoss={testData.packetLoss} dark={dark} unit={unitLabel} />
+                </div>
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                  <Gauge phase={testData.phase} speed={unitMbps ? testData.displaySpeed : testData.displaySpeed / 8} dark={dark} unit={unitLabel} />
+                </div>
               </div>
-              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                <Gauge phase={testData.phase} speed={unitMbps ? testData.displaySpeed : testData.displaySpeed / 8} dark={dark} unit={unitLabel} />
+
+              <div className="flex justify-center lg:justify-start">
+                <Button
+                  color={isActive ? 'danger' : 'accent'}
+                  size="lg"
+                  onPress={isActive ? handleAbort : handleStart}
+                  isDisabled={(!isActive && running) || serversLoading || !selectedServer}
+                  className="min-w-[180px] h-14 text-base font-semibold tracking-wide rounded-full"
+                >
+                  {isActive ? 'Abort' : testData.phase === 'complete' ? 'Test Again' : 'Start Test'}
+                </Button>
               </div>
+
+              {testData.error && (
+                <div className={`text-xs font-medium ${dark ? 'text-red-400' : 'text-red-600'} animate-[fade-in_0.3s_ease-out]`}>{testData.error}</div>
+              )}
+
+              {resultForReview && <div className="hidden lg:block"><SpeedReview result={resultForReview} dark={dark} dnsInfo={dnsInfo} sensitiveVisible={sensitiveVisible} onToggleSensitive={() => setSensitiveVisible(prev => !prev)} /></div>}
             </div>
 
-            <div className="flex justify-center lg:justify-start">
-              <Button
-                color={isActive ? 'danger' : 'accent'}
-                size="lg"
-                onPress={isActive ? handleAbort : handleStart}
-                isDisabled={(!isActive && running) || serversLoading || !selectedServer}
-                className="min-w-[180px] h-14 text-base font-semibold tracking-wide rounded-full"
-              >
-                {isActive ? 'Abort' : testData.phase === 'complete' ? 'Test Again' : 'Start Test'}
-              </Button>
-            </div>
+            <div className="min-w-0">
+              <Card ref={cardRef} variant="transparent" className={`w-full overflow-hidden ${dark ? 'bg-white/[0.012] ring-1 ring-white/[0.03]' : 'bg-white/65 shadow-sm'}`}>
+                <Card.Content className="p-0">
+                  <div className={`flex items-center justify-between px-3 sm:px-4 pb-1 mb-2 border-b ${dark ? 'border-white/[0.04]' : 'border-gray-200'}`}>
+                    <span className={`text-[10px] font-semibold ${dark ? 'text-white/25' : 'text-gray-400'} tracking-[0.15em] uppercase`}>Speed Test</span>
+                    {testData.phase !== 'idle' && testData.phase !== 'complete' && (
+                      <div className="flex gap-3">
+                        {testData.dlProgress > 0 && <span className="text-[10px] tabular-nums text-sky-400">DL {Math.round(testData.dlProgress * 100)}%</span>}
+                        {testData.ulProgress > 0 && <span className="text-[10px] tabular-nums text-green-400">UL {Math.round(testData.ulProgress * 100)}%</span>}
+                      </div>
+                    )}
+                  </div>
+                  <div className="px-4 pb-4">
+                    {row(<><ArrowDown size={15} strokeWidth={3} /> Download</>, testData.downloadSpeed > 0 ? `${fmtSpeed(unit(testData.downloadSpeed))} ${unitLabel}` : '--', dark, 'dark:text-cyan-400')}
+                    {row(<><ArrowUp size={15} strokeWidth={3} /> Upload</>, testData.uploadSpeed > 0 ? `${fmtSpeed(unit(testData.uploadSpeed))} ${unitLabel}` : '--', dark, 'dark:text-green-400')}
+                    {row(<><Activity size={15} strokeWidth={3} /> Ping</>, testData.ping > 0 ? `${testData.ping.toFixed(1)} ms (${pingLabel(testData.ping)})` : '--', dark, pingColor(testData.ping))}
+                    {row(<><GaugeIcon size={15} strokeWidth={3} /> Jitter</>, testData.jitter > 0 ? `${testData.jitter.toFixed(1)} ms` : '--', dark, 'dark:text-purple-400')}
+                    {testData.phase !== 'idle' && row(<><WifiOff size={15} strokeWidth={3} /> Packet Loss</>, testData.packetLoss > 0 ? `${testData.packetLoss.toFixed(1)}%` : '0%', dark, 'dark:text-yellow-400')}
+                    {testData.loadedLatency > 0 && row(<><Clock size={15} strokeWidth={3} /> Loaded Latency</>, `${testData.loadedLatency.toFixed(1)} ms`, dark, 'dark:text-teal-400')}
+                    {testData.serverName && (() => {
+                      const paren = testData.serverName.indexOf(' (');
+                      if (paren !== -1) {
+                        const sub = testData.serverName.slice(0, paren);
+                        const main = testData.serverName.slice(paren + 2, -1);
+                        return (
+                          <div className="flex items-center justify-between py-1.5">
+                            <span className={`text-xs ${dark ? 'text-white/35' : 'text-gray-500'} tracking-wider flex items-center gap-1 transition-colors duration-200`}><Server size={15} strokeWidth={2.5} /> Server</span>
+                            <div className="text-right">
+                              <div className={`text-sm font-medium ${dark ? 'text-white/70' : 'text-gray-700'} tabular-nums tracking-tight transition-all duration-200`}>{main}</div>
+                              <div className={`text-[10px] leading-tight -mt-0.5 ${dark ? 'text-white/30' : 'text-gray-400'}`}>{sub}</div>
+                            </div>
+                          </div>
+                        );
+                      }
+                      return row(<><Server size={15} strokeWidth={3} /> Server</>, testData.serverName, dark);
+                    })()}
+                  </div>
 
-            {testData.error && (
-              <div className={`text-xs font-medium ${dark ? 'text-red-400' : 'text-red-600'} animate-[fade-in_0.3s_ease-out]`}>{testData.error}</div>
-            )}
-
-            {resultForReview && <div className="hidden lg:block"><SpeedReview result={resultForReview} dark={dark} dnsInfo={dnsInfo} sensitiveVisible={sensitiveVisible} onToggleSensitive={() => setSensitiveVisible(prev => !prev)} /></div>}
-          </div>
-
-          <div className="min-w-0">
-            <Card ref={cardRef} variant="transparent" className={`w-full overflow-hidden ${dark ? 'bg-white/[0.012] ring-1 ring-white/[0.03]' : 'bg-white/65 shadow-sm'}`}>
-              <Card.Content className="p-0">
-                <div className={`flex items-center justify-between px-3 sm:px-4 pb-1 mb-2 border-b ${dark ? 'border-white/[0.04]' : 'border-gray-200'}`}>
-                  <span className={`text-[10px] font-semibold ${dark ? 'text-white/25' : 'text-gray-400'} tracking-[0.15em] uppercase`}>Speed Test</span>
-                  {testData.phase !== 'idle' && testData.phase !== 'complete' && (
-                    <div className="flex gap-3">
-                      {testData.dlProgress > 0 && <span className="text-[10px] tabular-nums text-sky-400">DL {Math.round(testData.dlProgress * 100)}%</span>}
-                      {testData.ulProgress > 0 && <span className="text-[10px] tabular-nums text-green-400">UL {Math.round(testData.ulProgress * 100)}%</span>}
+                  {isComplete && (
+                    <div className="px-4 pb-4">
+                      <div className={`border-t ${dark ? 'border-white/[0.04]' : 'border-gray-200'} mb-3`} />
+                      <button
+                        onClick={handleShare}
+                        className={`flex items-center gap-1.5 text-[11px] font-medium transition-colors ${
+                          dark ? 'text-white/40 hover:text-white/70' : 'text-gray-400 hover:text-gray-700'
+                        }`}
+                      >
+                        <Share2 size={13} strokeWidth={2.5} />
+                        {copied ? 'Copied to Clipboard' : 'Share Results'}
+                      </button>
                     </div>
                   )}
-                </div>
-                <div className="px-4 pb-4">
-                  {row(<><ArrowDown size={15} strokeWidth={3} /> Download</>, testData.downloadSpeed > 0 ? `${fmtSpeed(unit(testData.downloadSpeed))} ${unitLabel}` : '--', dark, 'dark:text-cyan-400')}
-                  {row(<><ArrowUp size={15} strokeWidth={3} /> Upload</>, testData.uploadSpeed > 0 ? `${fmtSpeed(unit(testData.uploadSpeed))} ${unitLabel}` : '--', dark, 'dark:text-green-400')}
-                  {row(<><Activity size={15} strokeWidth={3} /> Ping</>, testData.ping > 0 ? `${testData.ping.toFixed(1)} ms (${pingLabel(testData.ping)})` : '--', dark, pingColor(testData.ping))}
-                  {row(<><GaugeIcon size={15} strokeWidth={3} /> Jitter</>, testData.jitter > 0 ? `${testData.jitter.toFixed(1)} ms` : '--', dark, 'dark:text-purple-400')}
-                  {testData.phase !== 'idle' && row(<><WifiOff size={15} strokeWidth={3} /> Packet Loss</>, testData.packetLoss > 0 ? `${testData.packetLoss.toFixed(1)}%` : '0%', dark, 'dark:text-yellow-400')}
-                  {testData.loadedLatency > 0 && row(<><Clock size={15} strokeWidth={3} /> Loaded Latency</>, `${testData.loadedLatency.toFixed(1)} ms`, dark, 'dark:text-teal-400')}
-                  {testData.serverName && (() => {
-                    const paren = testData.serverName.indexOf(' (');
-                    if (paren !== -1) {
-                      const sub = testData.serverName.slice(0, paren);
-                      const main = testData.serverName.slice(paren + 2, -1);
-                      return (
-                        <div className="flex items-center justify-between py-1.5">
-                          <span className={`text-xs ${dark ? 'text-white/35' : 'text-gray-500'} tracking-wider flex items-center gap-1 transition-colors duration-200`}><Server size={15} strokeWidth={2.5} /> Server</span>
-                          <div className="text-right">
-                            <div className={`text-sm font-medium ${dark ? 'text-white/70' : 'text-gray-700'} tabular-nums tracking-tight transition-all duration-200`}>{main}</div>
-                            <div className={`text-[10px] leading-tight -mt-0.5 ${dark ? 'text-white/30' : 'text-gray-400'}`}>{sub}</div>
-                          </div>
+
+                  {connInfo && (
+                    <>
+                      <div className={`mx-2 border-t ${dark ? 'border-white/[0.04]' : 'border-gray-200'}`} />
+                      <div className="px-4 pb-4 pt-3">
+                        <div className="flex items-center gap-1.5 mb-2">
+                          <Globe size={14} strokeWidth={2.5} className={dark ? 'text-white/25' : 'text-gray-400'} />
+                          <span className={`text-[10px] font-semibold tracking-widest uppercase ${dark ? 'text-white/25' : 'text-gray-400'}`}>Connection</span>
+                          <button
+                            onClick={() => setSensitiveVisible(prev => !prev)}
+                            className={`ml-auto p-0.5 ${dark ? 'text-white/20 hover:text-white/50' : 'text-gray-400 hover:text-gray-600'}`}
+                            title={sensitiveVisible ? 'Hide sensitive info' : 'Show sensitive info'}
+                          >
+                            {sensitiveVisible ? <EyeOff size={13} strokeWidth={2.5} /> : <Eye size={13} strokeWidth={2.5} />}
+                          </button>
                         </div>
-                      );
-                    }
-                    return row(<><Server size={15} strokeWidth={3} /> Server</>, testData.serverName, dark);
-                  })()}
-                </div>
-
-                {isComplete && (
-                  <div className="px-4 pb-4">
-                    <div className={`border-t ${dark ? 'border-white/[0.04]' : 'border-gray-200'} mb-3`} />
-                    <button
-                      onClick={handleShare}
-                      className={`flex items-center gap-1.5 text-[11px] font-medium transition-colors ${
-                        dark ? 'text-white/40 hover:text-white/70' : 'text-gray-400 hover:text-gray-700'
-                      }`}
-                    >
-                      <Share2 size={13} strokeWidth={2.5} />
-                      {copied ? 'Copied to Clipboard' : 'Share Results'}
-                    </button>
-                  </div>
-                )}
-
-                {connInfo && (
-                  <>
-                    <div className={`mx-2 border-t ${dark ? 'border-white/[0.04]' : 'border-gray-200'}`} />
-                    <div className="px-4 pb-4 pt-3">
-                      <div className="flex items-center gap-1.5 mb-2">
-                        <Globe size={14} strokeWidth={2.5} className={dark ? 'text-white/25' : 'text-gray-400'} />
-                        <span className={`text-[10px] font-semibold tracking-widest uppercase ${dark ? 'text-white/25' : 'text-gray-400'}`}>Connection</span>
-                        <button
-                          onClick={() => setSensitiveVisible(prev => !prev)}
-                          className={`ml-auto p-0.5 ${dark ? 'text-white/20 hover:text-white/50' : 'text-gray-400 hover:text-gray-600'}`}
-                          title={sensitiveVisible ? 'Hide sensitive info' : 'Show sensitive info'}
-                        >
-                          {sensitiveVisible ? <EyeOff size={13} strokeWidth={2.5} /> : <Eye size={13} strokeWidth={2.5} />}
-                        </button>
-                      </div>
-                      {row(<><Globe size={15} strokeWidth={3} /> IP Address</>, sensitiveVisible ? connInfo.ip : maskIp(connInfo.ip), dark)}
-                      {connInfo.asn && row(<>ASN</>, connInfo.asn, dark)}
-                      {row(<>ISP</>, connInfo.isp, dark)}
-                      {(connInfo.city || connInfo.country) && row(<>Location</>, [connInfo.city, connInfo.region, connInfo.country].filter(Boolean).join(', '), dark)}
-                      {dnsInfo && (() => {
-                        const dnsValue = `${dnsInfo.provider} (${sensitiveVisible ? dnsInfo.ip : maskIp(dnsInfo.ip)})`;
-                        const paren = dnsValue.indexOf(' (');
-                        if (paren !== -1) {
-                          const sub = dnsValue.slice(0, paren);
-                          const main = dnsValue.slice(paren + 2, -1);
-                          return (
-                            <div className="flex items-center justify-between py-1.5">
-                              <span className={`text-xs ${dark ? 'text-white/35' : 'text-gray-500'} tracking-wider flex items-center gap-1 transition-colors duration-200`}><Search size={15} strokeWidth={3} /> DNS</span>
-                              <div className="text-right">
-                                <div className={`text-sm font-medium ${dark ? 'text-white/70' : 'text-gray-700'} tabular-nums tracking-tight transition-all duration-200`}>{main}</div>
-                                <div className={`text-[10px] leading-tight -mt-0.5 ${dark ? 'text-white/30' : 'text-gray-400'}`}>{sub}</div>
+                        {row(<><Globe size={15} strokeWidth={3} /> IP Address</>, sensitiveVisible ? connInfo.ip : maskIp(connInfo.ip), dark)}
+                        {connInfo.asn && row(<>ASN</>, connInfo.asn, dark)}
+                        {row(<>ISP</>, connInfo.isp, dark)}
+                        {(connInfo.city || connInfo.country) && row(<>Location</>, [connInfo.city, connInfo.region, connInfo.country].filter(Boolean).join(', '), dark)}
+                        {dnsInfo && (() => {
+                          const dnsValue = `${dnsInfo.provider} (${sensitiveVisible ? dnsInfo.ip : maskIp(dnsInfo.ip)})`;
+                          const paren = dnsValue.indexOf(' (');
+                          if (paren !== -1) {
+                            const sub = dnsValue.slice(0, paren);
+                            const main = dnsValue.slice(paren + 2, -1);
+                            return (
+                              <div className="flex items-center justify-between py-1.5">
+                                <span className={`text-xs ${dark ? 'text-white/35' : 'text-gray-500'} tracking-wider flex items-center gap-1 transition-colors duration-200`}><Search size={15} strokeWidth={3} /> DNS</span>
+                                <div className="text-right">
+                                  <div className={`text-sm font-medium ${dark ? 'text-white/70' : 'text-gray-700'} tabular-nums tracking-tight transition-all duration-200`}>{main}</div>
+                                  <div className={`text-[10px] leading-tight -mt-0.5 ${dark ? 'text-white/30' : 'text-gray-400'}`}>{sub}</div>
+                                </div>
                               </div>
-                            </div>
-                          );
-                        }
-                        return row(<><Search size={15} strokeWidth={3} /> DNS</>, dnsValue, dark);
-                      })()}
-                    </div>
-
-                    <div className={`mx-2 border-t ${dark ? 'border-white/[0.04]' : 'border-gray-200'}`} />
-                    <div className="px-4 pb-4 pt-3">
-                      <div className="flex items-center gap-1.5 mb-2">
-                        <Monitor size={14} strokeWidth={2.5} className={dark ? 'text-white/25' : 'text-gray-400'} />
-                        <span className={`text-[10px] font-semibold tracking-widest uppercase ${dark ? 'text-white/25' : 'text-gray-400'}`}>Client</span>
+                            );
+                          }
+                          return row(<><Search size={15} strokeWidth={3} /> DNS</>, dnsValue, dark);
+                        })()}
                       </div>
-                      {row(<><Monitor size={15} strokeWidth={3} /> Browser</>, connInfo.browser, dark)}
-                      {row(<>Platform</>, connInfo.platform, dark)}
-                    </div>
 
-                    {(connInfo.effectiveType !== 'Unknown' || connInfo.rtt > 0) && (
-                      <>
-                        <div className={`mx-2 border-t ${dark ? 'border-white/[0.04]' : 'border-gray-200'}`} />
-                        <div className="px-4 pb-4 pt-3">
-                          <div className="flex items-center gap-1.5 mb-2">
-                            <Activity size={14} strokeWidth={2.5} className={dark ? 'text-white/25' : 'text-gray-400'} />
-                            <span className={`text-[10px] font-semibold tracking-widest uppercase ${dark ? 'text-white/25' : 'text-gray-400'}`}>Network</span>
-                          </div>
-                          {connInfo.connectionType !== 'Unknown' && row(<>Connection</>, fmtConnType(connInfo.connectionType), dark)}
-                          {connInfo.effectiveType !== 'Unknown' && row(<>Effective Type</>, connInfo.effectiveType.toUpperCase(), dark)}
-                          {connInfo.rtt > 0 && row(<>Browser RTT</>, `${connInfo.rtt} ms`, dark)}
-                          {connInfo.downlink > 0 && row(<>Browser Downlink</>, fmtDownlink(connInfo.downlink), dark)}
+                      <div className={`mx-2 border-t ${dark ? 'border-white/[0.04]' : 'border-gray-200'}`} />
+                      <div className="px-4 pb-4 pt-3">
+                        <div className="flex items-center gap-1.5 mb-2">
+                          <Monitor size={14} strokeWidth={2.5} className={dark ? 'text-white/25' : 'text-gray-400'} />
+                          <span className={`text-[10px] font-semibold tracking-widest uppercase ${dark ? 'text-white/25' : 'text-gray-400'}`}>Client</span>
                         </div>
-                      </>
-                    )}
-                  </>
-                )}
-              </Card.Content>
-            </Card>
+                        {row(<><Monitor size={15} strokeWidth={3} /> Browser</>, connInfo.browser, dark)}
+                        {row(<>Platform</>, connInfo.platform, dark)}
+                      </div>
+
+                      {(connInfo.effectiveType !== 'Unknown' || connInfo.rtt > 0) && (
+                        <>
+                          <div className={`mx-2 border-t ${dark ? 'border-white/[0.04]' : 'border-gray-200'}`} />
+                          <div className="px-4 pb-4 pt-3">
+                            <div className="flex items-center gap-1.5 mb-2">
+                              <Activity size={14} strokeWidth={2.5} className={dark ? 'text-white/25' : 'text-gray-400'} />
+                              <span className={`text-[10px] font-semibold tracking-widest uppercase ${dark ? 'text-white/25' : 'text-gray-400'}`}>Network</span>
+                            </div>
+                            {connInfo.connectionType !== 'Unknown' && row(<>Connection</>, fmtConnType(connInfo.connectionType), dark)}
+                            {connInfo.effectiveType !== 'Unknown' && row(<>Effective Type</>, connInfo.effectiveType.toUpperCase(), dark)}
+                            {connInfo.rtt > 0 && row(<>Browser RTT</>, `${connInfo.rtt} ms`, dark)}
+                            {connInfo.downlink > 0 && row(<>Browser Downlink</>, fmtDownlink(connInfo.downlink), dark)}
+                          </div>
+                        </>
+                      )}
+                    </>
+                  )}
+                </Card.Content>
+              </Card>
+            </div>
           </div>
+
+          {resultForReview && <div className="block lg:hidden"><SpeedReview result={resultForReview} dark={dark} dnsInfo={dnsInfo} sensitiveVisible={sensitiveVisible} onToggleSensitive={() => setSensitiveVisible(prev => !prev)} /></div>}
         </div>
 
-        {resultForReview && <div className="block lg:hidden"><SpeedReview result={resultForReview} dark={dark} dnsInfo={dnsInfo} sensitiveVisible={sensitiveVisible} onToggleSensitive={() => setSensitiveVisible(prev => !prev)} /></div>}
+        <div style={{ display: activeTab === 'downdetector' ? '' : 'none' }}>
+          <DownDetector dark={dark} />
+        </div>
 
-        <div className={`w-full text-center text-[9px] sm:text-[10px] leading-relaxed ${dark ? 'text-white/20' : 'text-gray-400'} tracking-wider`}>
-          <p className="mb-3">
-            <span className="font-semibold">NetSpeed</span> is a browser-based network speed test toolkit that tests
-            your connection against <span className="font-semibold">Cloudflare</span>'s global edge network and
-            <span className="font-semibold"> Ookla/Speedtest.net</span> ISP-hosted servers via WebSocket.
-            It measures download/upload speed, ping, jitter, and packet loss using parallel streams.
-            No data leaves your browser — results are not stored or shared.
-          </p>
-          <p>
-            built by <a href="https://github.com/itsmeadarsh2008" target="_blank" rel="noopener noreferrer" className={`${dark ? 'text-white/30 hover:text-white/60' : 'text-gray-500 hover:text-gray-700'} underline underline-offset-2`}>Adarsh</a> under <span className="font-semibold">NetSpeed</span>
-          </p>
+        <div className={`w-full text-center text-[10px] sm:text-xs ${dark ? 'text-white/15' : 'text-gray-400'}`}>
+          NetSpeed &copy; {new Date().getFullYear()} &mdash; built by <a href="https://github.com/itsmeadarsh2008" target="_blank" rel="noopener noreferrer" className={`underline underline-offset-2 ${dark ? 'text-white/25 hover:text-white/50' : 'text-gray-500 hover:text-gray-700'}`}>Adarsh Gourab Mahalik</a>
         </div>
       </div>
     </div>
