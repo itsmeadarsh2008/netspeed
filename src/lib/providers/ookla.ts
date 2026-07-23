@@ -333,6 +333,7 @@ export const ooklaProvider: SpeedtestProvider = {
       host: s.host,
       sponsor: s.sponsor,
       country: s.country,
+      cc: s.cc,
       lat: s.lat,
       lon: s.lon,
       provider: 'ookla',

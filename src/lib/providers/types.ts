@@ -30,6 +30,7 @@ export interface ProviderServer {
   host: string;
   sponsor: string;
   country?: string;
+  cc?: string;
   lat?: number;
   lon?: number;
   provider: string;

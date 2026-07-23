@@ -30,29 +30,47 @@ function haversineKm(lat1: number, lon1: number, lat2: number, lon2: number): nu
 
 function pingOokla(host: string): Promise<number> {
   const start = performance.now();
-  return new Promise((resolve, reject) => {
-    const ws = new WebSocket(`ws://${host}/ws`);
-    let done = false;
-    const timeout = setTimeout(() => {
-      if (!done) { done = true; ws.close(); reject(new Error('timeout')); }
-    }, 1500);
-    ws.addEventListener('open', () => {
-      if (done) return;
-      ws.send('HI');
+  const attempt = (secure: boolean): Promise<number> => {
+    return new Promise((resolve, reject) => {
+      const scheme = secure ? 'wss' : 'ws';
+      const ws = new WebSocket(`${scheme}://${host}/ws`);
+      let done = false;
+      const timeout = setTimeout(() => {
+        if (!done) { done = true; ws.close(); reject(new Error('timeout')); }
+      }, 2000);
+      ws.addEventListener('open', () => {
+        if (done) return;
+        ws.send('HI');
+      });
+      ws.addEventListener('message', function handler(e) {
+        if (typeof e.data !== 'string') return;
+        if (e.data.startsWith('HELLO')) ws.send('GETIP');
+        else if (e.data.startsWith('YOURIP')) {
+          clearTimeout(timeout);
+          ws.removeEventListener('message', handler);
+          done = true;
+          ws.close();
+          resolve(performance.now() - start);
+        }
+      });
+      ws.addEventListener('error', () => { if (!done) { clearTimeout(timeout); done = true; ws.close(); reject(new Error('ws error')); } });
     });
-    ws.addEventListener('message', function handler(e) {
-      if (typeof e.data !== 'string') return;
-      if (e.data.startsWith('HELLO')) ws.send('GETIP');
-      else if (e.data.startsWith('YOURIP')) {
-        clearTimeout(timeout);
-        ws.removeEventListener('message', handler);
-        done = true;
-        ws.close();
-        resolve(performance.now() - start);
-      }
-    });
-    ws.addEventListener('error', () => { if (!done) { clearTimeout(timeout); done = true; reject(new Error('ws error')); } });
-  });
+  };
+  return attempt(true).catch(() => attempt(false));
+}
+
+async function getIPLocation(): Promise<{ lat: number; lon: number; country?: string } | null> {
+  try {
+    const res = await fetch('https://ip-api.com/json/', { signal: AbortSignal.timeout(5000) });
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (data.status === 'success') {
+      return { lat: data.lat, lon: data.lon, country: data.countryCode };
+    }
+    return null;
+  } catch {
+    return null;
+  }
 }
 
 export function getUserLocation(): Promise<{ lat: number; lon: number }> {
@@ -66,16 +84,14 @@ export function getUserLocation(): Promise<{ lat: number; lon: number }> {
   });
 }
 
-function rankByGeo(
-  servers: ProviderServer[],
-  userLat: number,
-  userLon: number,
-): ProviderServer[] {
-  return [...servers].sort((a, b) => {
-    const da = (a.lat != null && a.lon != null) ? haversineKm(userLat, userLon, a.lat, a.lon) : Infinity;
-    const db = (b.lat != null && b.lon != null) ? haversineKm(userLat, userLon, b.lat, b.lon) : Infinity;
-    return da - db;
-  });
+function getUserCountryFromLocale(): string | null {
+  const region = navigator.language?.split('-')[1]?.toUpperCase();
+  if (region && region.length === 2) return region;
+  for (const lang of navigator.languages ?? []) {
+    const r = lang.split('-')[1]?.toUpperCase();
+    if (r && r.length === 2) return r;
+  }
+  return null;
 }
 
 export async function pickBestServer(
@@ -84,42 +100,53 @@ export async function pickBestServer(
 ): Promise<ProviderServer> {
   if (servers.length <= 1) return servers[0];
 
-  const notFound = servers.find(s => s.lat == null || s.lon == null) !== undefined;
-  const manualTest = servers.length <= 5 || notFound;
+  let userLoc: { lat: number; lon: number } | null = null;
+  let userCountry: string | null = null;
 
-  let candidates: ProviderServer[];
-  if (manualTest) {
-    candidates = servers;
-  } else {
-    try {
-      const loc = await getUserLocation();
-      candidates = rankByGeo(servers, loc.lat, loc.lon).slice(0, 8);
-    } catch {
-      candidates = servers.slice(0, 8);
-    }
+  const ipLoc = await getIPLocation();
+  if (ipLoc) {
+    userLoc = { lat: ipLoc.lat, lon: ipLoc.lon };
+    userCountry = ipLoc.country ?? null;
   }
 
-  const results: { server: ProviderServer; latency: number }[] = [];
-  const pings = await Promise.allSettled(
-    candidates.map(async (s) => {
-      const start = performance.now();
-      if (providerId === 'ookla') {
-        await pingOokla(s.host);
-      } else if (providerId === 'librespeed') {
-        const base = s.host.replace(/\/+$/, '');
-        await fetch(`${base}/empty.php?cors=true&r=${Math.random()}`, { cache: 'no-store', signal: AbortSignal.timeout(1500) });
-      } else {
-        await fetch(`https://${s.host}/__down?bytes=1`, { cache: 'no-store', signal: AbortSignal.timeout(1500) });
-      }
-      return { server: s, latency: performance.now() - start };
-    }),
+  if (!userLoc) {
+    try { userLoc = await getUserLocation(); } catch {}
+  }
+
+  if (!userCountry) {
+    userCountry = getUserCountryFromLocale();
+  }
+
+  let candidates = servers;
+  if (userCountry) {
+    const same = servers.filter(s => s.cc?.toUpperCase() === userCountry);
+    if (same.length > 0) candidates = same;
+  }
+
+  if (userLoc) {
+    candidates = [...candidates].sort((a, b) => {
+      const da = (a.lat != null && a.lon != null) ? haversineKm(userLoc!.lat, userLoc!.lon, a.lat, a.lon) : Infinity;
+      const db = (b.lat != null && b.lon != null) ? haversineKm(userLoc!.lat, userLoc!.lon, b.lat, b.lon) : Infinity;
+      return da - db;
+    });
+  }
+
+  const topN = candidates.slice(0, 3);
+  if (topN.length === 1) return topN[0];
+
+  const results = await Promise.allSettled(
+    topN.map(async s => {
+      const latency = await pingOokla(s.host);
+      return { server: s, latency };
+    })
   );
-  for (const r of pings) {
-    if (r.status === 'fulfilled') results.push(r.value);
-  }
 
-  results.sort((a, b) => a.latency - b.latency);
-  return results.length > 0 ? results[0].server : candidates[0];
+  const valid = results
+    .filter((r): r is PromiseFulfilledResult<{ server: ProviderServer; latency: number }> => r.status === 'fulfilled')
+    .sort((a, b) => a.value.latency - b.value.latency);
+
+  if (valid.length > 0) return valid[0].value.server;
+  return candidates[0];
 }
 
 export function abortSpeedtest() {

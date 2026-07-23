@@ -1,6 +1,7 @@
 import type { SpeedtestResult } from '../lib/speedtest';
 import type { DnsInfo } from '../lib/dns';
 import { Shield, Wifi, Zap, AlertTriangle, CheckCircle, Info } from 'lucide-react';
+import { Skeleton } from '@heroui/react';
 
 interface ReviewProps {
   result: SpeedtestResult;
@@ -132,6 +133,42 @@ export default function SpeedReview({ result, dark, dnsInfo, sensitiveVisible, o
             );
           })}
         </div>
+      </div>
+    </div>
+  );
+}
+
+export function SpeedReviewSkeleton({ dark }: { dark: boolean }) {
+  const bg = dark ? 'bg-white/[0.012] ring-1 ring-white/[0.03] rounded-xl' : 'bg-white/65 shadow-sm rounded-xl';
+  return (
+    <div className={`mt-4 ${bg} p-4 w-full flex flex-col gap-3`}>
+      <Skeleton className="w-20 h-3 rounded-md" />
+      <div className="flex items-center gap-2">
+        <Skeleton className="w-10 h-3 rounded-md" />
+        <Skeleton className="w-14 h-3 rounded-md" />
+        <Skeleton className="flex-1 h-3 rounded-md" />
+      </div>
+      <Skeleton className="w-28 h-3 rounded-md" />
+      <div className="flex flex-col gap-1.5 pl-2">
+        <Skeleton className="w-full h-2.5 rounded-md" />
+        <Skeleton className="w-3/4 h-2.5 rounded-md" />
+        <Skeleton className="w-5/6 h-2.5 rounded-md" />
+        <Skeleton className="w-2/3 h-2.5 rounded-md" />
+      </div>
+      <Skeleton className="w-36 h-3 rounded-md" />
+      <div className="flex items-center gap-2">
+        <Skeleton className="w-12 h-3 rounded-md" />
+        <Skeleton className="w-20 h-3 rounded-md" />
+        <Skeleton className="w-28 h-3 rounded-md" />
+      </div>
+      <Skeleton className="w-24 h-3 rounded-md" />
+      <div className="flex flex-col gap-1.5 pl-2">
+        <Skeleton className="w-full h-2.5 rounded-md" />
+        <Skeleton className="w-11/12 h-2.5 rounded-md" />
+        <Skeleton className="w-4/5 h-2.5 rounded-md" />
+        <Skeleton className="w-3/4 h-2.5 rounded-md" />
+        <Skeleton className="w-5/6 h-2.5 rounded-md" />
+        <Skeleton className="w-2/3 h-2.5 rounded-md" />
       </div>
     </div>
   );
