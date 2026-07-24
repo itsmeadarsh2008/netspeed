@@ -111,7 +111,7 @@ export default function SpeedGraph({ download, upload, packetLoss, dark = true, 
 
     rafRef.current = requestAnimationFrame(tick);
     return () => { running = false; cancelAnimationFrame(rafRef.current); };
-  }, [download, upload, targetCeiling]);
+  }, [download.length, upload.length, targetCeiling]);
 
   const ceiling = animCeiling;
   const win = 3;

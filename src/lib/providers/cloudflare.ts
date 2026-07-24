@@ -17,22 +17,12 @@ async function runDownloadStreamCf(onBytes: (n: number) => void, signal: AbortSi
   }
 }
 
-const TOTAL_HEADER = 'cf-meta-upload-bytes';
-
 async function runUploadStreamCf(onBytes: (n: number) => void, signal: AbortSignal): Promise<void> {
-  const genContent = (() => {
-    const cache = new Map<number, string>();
-    return (numBytes: number): string => {
-      if (!cache.has(numBytes)) cache.set(numBytes, '0'.repeat(numBytes));
-      return cache.get(numBytes)!;
-    };
-  })();
+  const CHUNK = 1_000_000;
   while (!signal.aborted) {
     try {
-      const response = await fetch(`${BASE}/__up`, { method: 'POST', cache: 'no-store', body: genContent(1_000_000), signal });
-      if (!response.ok) return;
-      const total = Number(response.headers.get(TOTAL_HEADER) || 1_000_000);
-      onBytes(total);
+      const response = await fetch(`${BASE}/__up`, { method: 'POST', cache: 'no-store', mode: 'no-cors', body: '0'.repeat(CHUNK), signal });
+      onBytes(CHUNK);
     } catch {
       if (signal.aborted) return;
     }
