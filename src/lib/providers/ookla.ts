@@ -68,7 +68,7 @@ const ISP_SLUGS = [
   'you-broadband-india', 'ytl-broadband',
 ];
 
-const BATCH_SIZE = 15;
+const BATCH_SIZE = 50;
 
 const CACHE_KEY = 'netspeed-ookla-servers';
 const CACHE_TTL = 604800000; // 7 days
@@ -136,13 +136,12 @@ async function discoverServers(): Promise<OoklaServer[]> {
   const cached = getCachedServers();
   if (cached && cached.length > 0) return cached;
 
-  const timeout = new Promise<null>((resolve) => setTimeout(() => resolve(null), 15000));
-  const fetched = await Promise.race([fetchFromGitHub(), timeout]);
+  fetchFromGitHub().then(fetched => {
+    if (fetched && fetched.length > 0) {
+      setCachedServers(fetched);
+    }
+  }).catch(() => {});
 
-  if (fetched && fetched.length > 0) {
-    setCachedServers(fetched);
-    return fetched;
-  }
   return EMBEDDED_SERVERS;
 }
 
