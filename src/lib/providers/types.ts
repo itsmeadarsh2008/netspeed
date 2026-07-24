@@ -53,6 +53,7 @@ export interface SpeedtestProvider {
   shortName: string;
   description: string;
   discoverServers(): Promise<ProviderServer[]>;
+  loadFullServers?(): Promise<ProviderServer[]>;
   runTest(
     server: ProviderServer,
     onUpdate: (u: SpeedtestUpdate) => void,

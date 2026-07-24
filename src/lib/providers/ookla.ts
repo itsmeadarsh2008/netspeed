@@ -135,13 +135,17 @@ async function fetchFromGitHub(): Promise<OoklaServer[]> {
 async function discoverServers(): Promise<OoklaServer[]> {
   const cached = getCachedServers();
   if (cached && cached.length > 0) return cached;
+  return EMBEDDED_SERVERS;
+}
 
-  fetchFromGitHub().then(fetched => {
-    if (fetched && fetched.length > 0) {
-      setCachedServers(fetched);
-    }
-  }).catch(() => {});
-
+async function loadFullServers(): Promise<OoklaServer[]> {
+  const cached = getCachedServers();
+  if (cached && cached.length > 0) return cached;
+  const fetched = await fetchFromGitHub();
+  if (fetched && fetched.length > 0) {
+    setCachedServers(fetched);
+    return fetched;
+  }
   return EMBEDDED_SERVERS;
 }
 
@@ -326,6 +330,21 @@ export const ooklaProvider: SpeedtestProvider = {
 
   async discoverServers(): Promise<ProviderServer[]> {
     const servers = await discoverServers();
+    return servers.map(s => ({
+      id: String(s.id || s.host),
+      name: s.sponsor ? `${s.name} (${s.sponsor})` : s.name,
+      host: s.host,
+      sponsor: s.sponsor,
+      country: s.country,
+      cc: s.cc,
+      lat: s.lat,
+      lon: s.lon,
+      provider: 'ookla',
+    }));
+  },
+
+  async loadFullServers(): Promise<ProviderServer[]> {
+    const servers = await loadFullServers();
     return servers.map(s => ({
       id: String(s.id || s.host),
       name: s.sponsor ? `${s.name} (${s.sponsor})` : s.name,

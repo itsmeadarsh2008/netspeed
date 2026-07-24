@@ -20,7 +20,17 @@ export async function getServersForProvider(providerId: string): Promise<Provide
   }
 }
 
-function haversineKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
+export async function getFullServersForProvider(providerId: string): Promise<ProviderServer[]> {
+  const provider = getProvider(providerId);
+  if (!provider) return [];
+  try {
+    return await ((provider as any).loadFullServers?.() ?? Promise.resolve([]));
+  } catch {
+    return [];
+  }
+}
+
+export function haversineKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const R = 6371;
   const dLat = (lat2 - lat1) * Math.PI / 180;
   const dLon = (lon2 - lon1) * Math.PI / 180;
@@ -59,7 +69,7 @@ function pingOokla(host: string): Promise<number> {
   return attempt(true).catch(() => attempt(false));
 }
 
-async function getIPLocation(): Promise<{ lat: number; lon: number; country?: string } | null> {
+export async function getIPLocation(): Promise<{ lat: number; lon: number; country?: string } | null> {
   try {
     const res = await fetch('https://ip-api.com/json/', { signal: AbortSignal.timeout(5000) });
     if (!res.ok) return null;
@@ -117,18 +127,31 @@ export async function pickBestServer(
     userCountry = getUserCountryFromLocale();
   }
 
-  let candidates = servers;
+  let candidates: ProviderServer[];
   if (userCountry) {
     const same = servers.filter(s => s.cc?.toUpperCase() === userCountry);
-    if (same.length > 0) candidates = same;
-  }
-
-  if (userLoc) {
-    candidates = [...candidates].sort((a, b) => {
+    const other = servers.filter(s => s.cc?.toUpperCase() !== userCountry);
+    if (userLoc) {
+      same.sort((a, b) => {
+        const da = (a.lat != null && a.lon != null) ? haversineKm(userLoc!.lat, userLoc!.lon, a.lat, a.lon) : Infinity;
+        const db = (b.lat != null && b.lon != null) ? haversineKm(userLoc!.lat, userLoc!.lon, b.lat, b.lon) : Infinity;
+        return da - db;
+      });
+      other.sort((a, b) => {
+        const da = (a.lat != null && a.lon != null) ? haversineKm(userLoc!.lat, userLoc!.lon, a.lat, a.lon) : Infinity;
+        const db = (b.lat != null && b.lon != null) ? haversineKm(userLoc!.lat, userLoc!.lon, b.lat, b.lon) : Infinity;
+        return da - db;
+      });
+    }
+    candidates = [...same, ...other];
+  } else if (userLoc) {
+    candidates = [...servers].sort((a, b) => {
       const da = (a.lat != null && a.lon != null) ? haversineKm(userLoc!.lat, userLoc!.lon, a.lat, a.lon) : Infinity;
       const db = (b.lat != null && b.lon != null) ? haversineKm(userLoc!.lat, userLoc!.lon, b.lat, b.lon) : Infinity;
       return da - db;
     });
+  } else {
+    candidates = [...servers];
   }
 
   const topN = candidates.slice(0, 3);
