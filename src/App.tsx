@@ -444,19 +444,19 @@ export default function App() {
         </div>
       )}
 
-      <div className={`${dark ? 'text-white/90' : 'text-gray-900'} w-full mx-auto px-3 lg:px-8 py-6 lg:py-10 flex flex-col items-center gap-4 sm:gap-5`}>
+      <main className={`${dark ? 'text-white/90' : 'text-gray-900'} w-full mx-auto px-3 lg:px-8 py-6 lg:py-10 flex flex-col items-center gap-4 sm:gap-5`}>
         <header className="w-full flex items-start justify-between">
           <div className="flex flex-col">
-            <span className={`flex items-center gap-2 font-semibold tracking-tight ${dark ? 'text-white' : 'text-gray-900'}`}>
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="shrink-0">
+            <h1 className={`flex items-center gap-2 font-semibold tracking-tight ${dark ? 'text-white' : 'text-gray-900'}`}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="shrink-0" aria-hidden="true">
                 <path d="M4 17c2-3 5-5 8-5s6 2 8 5" stroke={dark ? '#00e5ff' : '#0891b2'} strokeWidth="1.5" strokeLinecap="round" fill="none" />
                 <path d="M4 7c2 3 5 5 8 5s6-2 8-5" stroke={dark ? '#00e5ff' : '#0891b2'} strokeWidth="1.5" strokeLinecap="round" fill="none" opacity="0.4" />
                 <circle cx="12" cy="12" r="2" fill={dark ? '#00e5ff' : '#0891b2'} />
                 <circle cx="12" cy="12" r="5" stroke={dark ? '#00e5ff' : '#0891b2'} strokeWidth="1.5" strokeDasharray="2 3" opacity="0.35" />
               </svg>
               NetSpeed
-            </span>
-            <span className={`text-[10px] tracking-wider mt-0.5 ml-7 ${dark ? 'text-white/25' : 'text-gray-400'}`}>Browser Speed Test</span>
+            </h1>
+            <p className={`text-[10px] tracking-wider mt-0.5 ml-7 ${dark ? 'text-white/25' : 'text-gray-400'}`}>Browser Speed Test</p>
           </div>
           <div className="flex items-center gap-2">
             <div className="hidden lg:block">
@@ -503,6 +503,7 @@ export default function App() {
               <Search size={14} strokeWidth={2.5} className={`shrink-0 ${dark ? 'text-white/25' : 'text-gray-400'}`} />
               <input
                 type="text"
+                aria-label="Search servers"
                 value={serverSearch}
                 onChange={e => { setServerSearch(e.target.value); setServerDropdownOpen(true); }}
                 onFocus={() => setServerDropdownOpen(true)}
@@ -549,6 +550,7 @@ export default function App() {
           <div className={`flex items-stretch gap-1 w-full rounded-xl p-0.5 lg:hidden ${dark ? 'bg-white/[0.03]' : 'bg-gray-100'}`}>
             <button
               onClick={() => setActiveTab('speedtest')}
+              aria-label="Speed Test tab"
               className={`flex-1 px-3 py-2 text-[10px] font-semibold tracking-wider rounded-lg transition-all ${
                 activeTab === 'speedtest'
                   ? dark ? 'bg-white/10 text-white shadow-sm' : 'bg-white text-gray-900 shadow-sm'
@@ -559,6 +561,7 @@ export default function App() {
             </button>
             <button
               onClick={() => setActiveTab('downdetector')}
+              aria-label="Down Detector tab"
               className={`flex-1 px-3 py-2 text-[10px] font-semibold tracking-wider rounded-lg transition-all ${
                 activeTab === 'downdetector'
                   ? dark ? 'bg-white/10 text-white shadow-sm' : 'bg-white text-gray-900 shadow-sm'
@@ -590,6 +593,7 @@ export default function App() {
           <div className="hidden lg:flex items-stretch gap-1 rounded-lg p-0.5 shrink-0 ${dark ? 'bg-white/[0.03]' : 'bg-gray-100'}">
             <button
               onClick={() => setActiveTab('speedtest')}
+              aria-label="Speed Test tab"
               className={`px-3 py-2 text-[10px] font-semibold tracking-wider rounded-md transition-all ${
                 activeTab === 'speedtest'
                   ? dark ? 'bg-white/10 text-white shadow-sm' : 'bg-white text-gray-900 shadow-sm'
@@ -600,6 +604,7 @@ export default function App() {
             </button>
             <button
               onClick={() => setActiveTab('downdetector')}
+              aria-label="Down Detector tab"
               className={`px-3 py-2 text-[10px] font-semibold tracking-wider rounded-md transition-all ${
                 activeTab === 'downdetector'
                   ? dark ? 'bg-white/10 text-white shadow-sm' : 'bg-white text-gray-900 shadow-sm'
@@ -611,7 +616,7 @@ export default function App() {
           </div>
         </div>
 
-        <div style={{ display: activeTab === 'speedtest' ? '' : 'none' }} className="w-full">
+        <section style={{ display: activeTab === 'speedtest' ? '' : 'none' }} className="w-full">
 
           <div className="w-full grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8 items-start">
             <div className="lg:col-span-2 flex flex-col gap-5">
@@ -634,6 +639,7 @@ export default function App() {
                       <Search size={14} strokeWidth={2.5} className={`shrink-0 ${dark ? 'text-white/25' : 'text-gray-400'}`} />
                       <input
                       type="text"
+                      aria-label="Search servers"
                       value={serverSearch}
                       onChange={e => { setServerSearch(e.target.value); setServerDropdownOpen(true); }}
                       onFocus={() => setServerDropdownOpen(true)}
@@ -682,6 +688,7 @@ export default function App() {
                   onPress={isActive ? handleAbort : handleStart}
                   isDisabled={(!isActive && running) || serversLoading || !selectedServer}
                   className="min-w-[180px] h-14 text-base font-semibold tracking-wide rounded-full"
+                  aria-label={isActive ? 'Abort speed test' : testData.phase === 'complete' ? 'Test Again' : 'Start speed test'}
                 >
                   {isActive ? 'Abort' : testData.phase === 'complete' ? 'Test Again' : 'Start Test'}
                 </Button>
@@ -780,8 +787,8 @@ export default function App() {
                                 <div className="text-right shrink-0">
                                   <div className={`text-sm font-medium ${dark ? 'text-white/70' : 'text-gray-700'} tabular-nums tracking-tight transition-all duration-200 whitespace-nowrap`}>{main}</div>
                                   <div className={`text-[10px] leading-tight -mt-0.5 text-right ${dark ? 'text-white/30' : 'text-gray-400'}`}>{sub}</div>
+                                  </div>
                                 </div>
-                              </div>
                             );
                           }
                           return row(<><Search size={15} strokeWidth={3} /> DNS</>, dnsValue, dark);
@@ -823,16 +830,16 @@ export default function App() {
 
           {resultForReview && <div className="block lg:hidden"><SpeedReview result={resultForReview} dark={dark} dnsInfo={dnsInfo} sensitiveVisible={sensitiveVisible} onToggleSensitive={() => setSensitiveVisible(prev => !prev)} /></div>}
           {isActive && <div className="block lg:hidden"><SpeedReviewSkeleton dark={dark} /></div>}
-        </div>
+        </section>
 
-        <div style={{ display: activeTab === 'downdetector' ? '' : 'none' }}>
+        <section style={{ display: activeTab === 'downdetector' ? '' : 'none' }}>
           <DownDetector dark={dark} />
-        </div>
+        </section>
 
-        <div className={`w-full text-center text-[10px] sm:text-xs ${dark ? 'text-white/15' : 'text-gray-400'}`}>
+        <footer className={`w-full text-center text-[10px] sm:text-xs ${dark ? 'text-white/15' : 'text-gray-400'}`}>
           NetSpeed &copy; {new Date().getFullYear()} &mdash; built by <a href="https://github.com/itsmeadarsh2008" target="_blank" rel="noopener noreferrer" className={`underline underline-offset-2 ${dark ? 'text-white/25 hover:text-white/50' : 'text-gray-500 hover:text-gray-700'}`}>Adarsh Gourab Mahalik</a>
-        </div>
-      </div>
+        </footer>
+      </main>
     </div>
   );
 }

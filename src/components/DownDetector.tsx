@@ -34,7 +34,7 @@ const PRESET_SITES: Omit<Site, 'status' | 'latency' | 'checkedAt' | 'favorite'>[
   { id: 'apple', name: 'Apple', url: 'https://www.apple.com' },
   { id: 'netflix', name: 'Netflix', url: 'https://www.netflix.com' },
   { id: 'meta', name: 'Meta', url: 'https://www.meta.com' },
-  { id: 'openai', name: 'OpenAI', url: 'https://www.openai.com' },
+  { id: 'chatgpt', name: 'ChatGPT', url: 'https://chatgpt.com' },
 ];
 
 const CHECK_TIMEOUT = 10000;
@@ -101,19 +101,41 @@ function uptimePercent(entries: OutageEntry[], siteName: string): number {
 
 async function checkSite(url: string, signal: AbortSignal): Promise<{ up: boolean; latency: number }> {
   const start = performance.now();
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), CHECK_TIMEOUT);
-  signal.addEventListener('abort', () => controller.abort(), { once: true });
-  try {
-    await fetch(url, { method: 'GET', mode: 'no-cors', signal: controller.signal });
-    const latency = performance.now() - start;
-    return { up: true, latency: Math.round(latency) };
-  } catch {
-    const latency = performance.now() - start;
-    return { up: false, latency: Math.round(latency) };
-  } finally {
-    clearTimeout(timer);
-  }
+  const origin = (() => { try { return new URL(url).origin; } catch { return url; } })();
+
+  const fetchCheck = async (): Promise<boolean> => {
+    const c = new AbortController();
+    const t = setTimeout(() => c.abort(), CHECK_TIMEOUT);
+    signal.addEventListener('abort', () => c.abort(), { once: true });
+    try {
+      await fetch(url, { method: 'HEAD', mode: 'no-cors', signal: c.signal });
+      return true;
+    } catch {
+      try {
+        await fetch(url, { method: 'GET', mode: 'no-cors', signal: c.signal });
+        return true;
+      } catch {
+        return false;
+      }
+    } finally {
+      clearTimeout(t);
+    }
+  };
+
+  const imgCheck = async (): Promise<boolean> => {
+    return new Promise(resolve => {
+      const img = new Image();
+      const t = setTimeout(() => { img.src = ''; resolve(false); }, 5000);
+      signal.addEventListener('abort', () => { clearTimeout(t); img.src = ''; resolve(false); }, { once: true });
+      img.onload = () => { clearTimeout(t); resolve(true); };
+      img.onerror = () => { clearTimeout(t); resolve(false); };
+      img.src = `${origin}/favicon.ico`;
+    });
+  };
+
+  const [fetchOk, imgOk] = await Promise.all([fetchCheck(), imgCheck()]);
+  const up = fetchOk || imgOk;
+  return { up, latency: Math.round(performance.now() - start) };
 }
 
 function PolkaDot({ status, size = 10, animated = false }: { status: SiteStatus; size?: number; animated?: boolean }) {
