@@ -156,6 +156,7 @@ export default function App() {
   const settingsRef = useRef(settings);
   const cardRef = useRef<HTMLDivElement>(null);
   const shareRef = useRef<HTMLDivElement>(null);
+  const shareCardRef = useRef<HTMLDivElement>(null);
   settingsRef.current = settings;
 
   useEffect(() => {
@@ -277,9 +278,9 @@ export default function App() {
   const unitLabel = unitMbps ? 'Mbps' : 'MB/s';
 
   const handleShare = useCallback(async () => {
-    if (testData.phase !== 'complete' || !shareRef.current) return;
+    if (testData.phase !== 'complete' || !shareCardRef.current) return;
     try {
-      const dataUrl = await toPng(shareRef.current, { backgroundColor: dark ? '#0a0a0f' : '#f9fafb' });
+      const dataUrl = await toPng(shareCardRef.current, { backgroundColor: dark ? '#0a0a0f' : '#f9fafb' });
       setShareImage(dataUrl);
       setShowShareModal(true);
     } catch {}
@@ -637,7 +638,7 @@ export default function App() {
 
         <section style={{ display: activeTab === 'speedtest' ? '' : 'none' }} className="w-full">
 
-          <div ref={shareRef} className="w-full grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8 items-start">
+          <div className="w-full grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8 items-start">
             <div className="lg:col-span-2 flex flex-col gap-5">
               <div className="relative h-56 sm:h-64 lg:h-72 w-full">
                 <div className="absolute inset-0 rounded-xl overflow-hidden">
@@ -858,6 +859,96 @@ export default function App() {
         <footer className={`w-full text-center text-[10px] sm:text-xs ${dark ? 'text-white/15' : 'text-gray-400'}`}>
           NetSpeed &copy; {new Date().getFullYear()} &mdash; built by <a href="https://github.com/itsmeadarsh2008" target="_blank" rel="noopener noreferrer" className={`underline underline-offset-2 ${dark ? 'text-white/25 hover:text-white/50' : 'text-gray-500 hover:text-gray-700'}`}>Adarsh Gourab Mahalik</a>
         </footer>
+
+      {/* Hidden share card — captured as PNG */}
+      <div ref={shareCardRef} className="fixed left-0 top-0 w-[600px] pointer-events-none" style={{ opacity: 0, zIndex: -1 }}>
+        <div className="w-full bg-[#0a0a0f] text-white overflow-hidden" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+          <div className="px-8 pt-8 pb-6">
+            <div className="flex items-center gap-2.5 mb-1">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M4 17c2-3 5-5 8-5s6 2 8 5" stroke="#00e5ff" strokeWidth="1.5" strokeLinecap="round" fill="none" />
+                <path d="M4 7c2 3 5 5 8 5s6-2 8-5" stroke="#00e5ff" strokeWidth="1.5" strokeLinecap="round" fill="none" opacity="0.4" />
+                <circle cx="12" cy="12" r="2" fill="#00e5ff" />
+              </svg>
+              <span className="text-lg font-semibold tracking-tight">NetSpeed</span>
+              <span className="text-[11px] text-white/30 tracking-wider ml-auto">Browser Speed Test</span>
+            </div>
+          </div>
+
+          <div className="px-8 pb-6">
+            <div className="flex items-center justify-center mb-4">
+              <svg width="200" height="120" viewBox="0 0 200 120" fill="none">
+                <path d="M20 100 A80 80 0 0 1 180 100" stroke="rgba(255,255,255,0.08)" strokeWidth="12" strokeLinecap="round" fill="none" />
+                <path d="M20 100 A80 80 0 0 1 180 100" stroke="url(#g)" strokeWidth="12" strokeLinecap="round" fill="none" strokeDasharray={`${Math.min(testData.downloadSpeed / 100, 1) * 251} 251`} />
+                <defs>
+                  <linearGradient id="g" x1="0" y1="0" x2="1" y2="0">
+                    <stop offset="0%" stopColor="#00e5ff" />
+                    <stop offset="100%" stopColor="#00e676" />
+                  </linearGradient>
+                </defs>
+              </svg>
+            </div>
+
+            <div className="text-center mb-6">
+              <div className="text-[56px] font-bold leading-none tracking-tight">
+                {testData.downloadSpeed >= 1000 ? (testData.downloadSpeed / 1000).toFixed(1) : Math.round(testData.downloadSpeed).toString()}
+                <span className="text-[20px] font-medium text-white/40 ml-1">{testData.downloadSpeed >= 1000 ? 'Gbps' : 'Mbps'}</span>
+              </div>
+              <div className="text-xs text-white/30 tracking-widest uppercase mt-1">Download</div>
+            </div>
+
+            <div className="h-px bg-white/5 mb-6" />
+
+            <div className="grid grid-cols-3 gap-4 text-center">
+              <div>
+                <div className="text-[22px] font-bold tracking-tight">
+                  {testData.uploadSpeed >= 100 ? Math.round(testData.uploadSpeed) : testData.uploadSpeed.toFixed(1)}
+                </div>
+                <div className="text-[10px] text-white/30 tracking-wider uppercase mt-0.5">Upload</div>
+                <div className="text-[11px] text-white/50 font-medium">{testData.uploadSpeed >= 1000 ? (testData.uploadSpeed / 1000).toFixed(1) + ' Gbps' : Math.round(testData.uploadSpeed) + ' Mbps'}</div>
+              </div>
+              <div>
+                <div className="text-[22px] font-bold tracking-tight">{testData.ping > 0 ? testData.ping.toFixed(1) : '—'}</div>
+                <div className="text-[10px] text-white/30 tracking-wider uppercase mt-0.5">Ping</div>
+                <div className="text-[11px] text-white/50 font-medium">ms</div>
+              </div>
+              <div>
+                <div className="text-[22px] font-bold tracking-tight">{testData.jitter > 0 ? testData.jitter.toFixed(1) : '—'}</div>
+                <div className="text-[10px] text-white/30 tracking-wider uppercase mt-0.5">Jitter</div>
+                <div className="text-[11px] text-white/50 font-medium">ms</div>
+              </div>
+            </div>
+
+            {(testData.packetLoss > 0 || testData.loadedLatency > 0) && (
+              <>
+                <div className="h-px bg-white/5 my-4" />
+                <div className="grid grid-cols-2 gap-4 text-center">
+                  {testData.packetLoss > 0 && (
+                    <div>
+                      <div className="text-[22px] font-bold tracking-tight text-yellow-400">{testData.packetLoss.toFixed(1)}%</div>
+                      <div className="text-[10px] text-white/30 tracking-wider uppercase mt-0.5">Packet Loss</div>
+                    </div>
+                  )}
+                  {testData.loadedLatency > 0 && (
+                    <div>
+                      <div className="text-[22px] font-bold tracking-tight">{testData.loadedLatency.toFixed(1)}</div>
+                      <div className="text-[10px] text-white/30 tracking-wider uppercase mt-0.5">Loaded Latency</div>
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
+
+          <div className="px-8 py-4 bg-white/[0.02] flex items-center justify-between text-[11px]">
+            <div className="flex items-center gap-3">
+              <span className="text-white/30">Server</span>
+              <span className="text-white/70 font-medium">{testData.serverName || (providerId === 'cloudflare' ? 'Cloudflare Auto' : 'Default')}</span>
+            </div>
+            <span className="text-white/20">netspeed.itsmeadarsh.com</span>
+          </div>
+        </div>
+      </div>
 
       {showShareModal && shareImage && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setShowShareModal(false)}>
