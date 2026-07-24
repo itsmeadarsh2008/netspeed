@@ -155,6 +155,7 @@ export default function App() {
   const dataRef = useRef<TestData>(INITIAL);
   const settingsRef = useRef(settings);
   const cardRef = useRef<HTMLDivElement>(null);
+  const shareRef = useRef<HTMLDivElement>(null);
   settingsRef.current = settings;
 
   useEffect(() => {
@@ -276,9 +277,9 @@ export default function App() {
   const unitLabel = unitMbps ? 'Mbps' : 'MB/s';
 
   const handleShare = useCallback(async () => {
-    if (testData.phase !== 'complete' || !cardRef.current) return;
+    if (testData.phase !== 'complete' || !shareRef.current) return;
     try {
-      const dataUrl = await toPng(cardRef.current, { backgroundColor: dark ? '#0a0a0f' : '#f9fafb' });
+      const dataUrl = await toPng(shareRef.current, { backgroundColor: dark ? '#0a0a0f' : '#f9fafb' });
       setShareImage(dataUrl);
       setShowShareModal(true);
     } catch {}
@@ -636,7 +637,7 @@ export default function App() {
 
         <section style={{ display: activeTab === 'speedtest' ? '' : 'none' }} className="w-full">
 
-          <div className="w-full grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8 items-start">
+          <div ref={shareRef} className="w-full grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8 items-start">
             <div className="lg:col-span-2 flex flex-col gap-5">
               <div className="relative h-56 sm:h-64 lg:h-72 w-full">
                 <div className="absolute inset-0 rounded-xl overflow-hidden">
