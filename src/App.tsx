@@ -906,7 +906,7 @@ export default function App() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setShowShareModal(false)}>
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
           <div
-            className={`relative z-10 w-full max-w-lg rounded-2xl overflow-hidden shadow-2xl ${dark ? 'bg-[#16161e] ring-1 ring-white/[0.06]' : 'bg-white ring-1 ring-gray-200'}`}
+            className={`relative z-10 w-full max-w-lg rounded-2xl shadow-2xl ${dark ? 'bg-[#16161e] ring-1 ring-white/[0.06]' : 'bg-white ring-1 ring-gray-200'}`}
             onClick={e => e.stopPropagation()}
           >
             <div className="flex items-center justify-between px-5 py-4">
@@ -919,77 +919,74 @@ export default function App() {
             <div className="px-5 pb-2">
               <div className="rounded-xl overflow-hidden ring-1 ring-white/[0.06]" ref={modalCardRef}>
                 <div className="bg-[#0a0a0f] text-white overflow-hidden" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
-                  <div className="px-8 pt-8 pb-6">
-                    <div className="flex items-center gap-2.5 mb-1">
-                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <div className="px-6 pt-4 pb-4">
+                    <div className="flex items-center gap-2 mb-1">
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <path d="M4 17c2-3 5-5 8-5s6 2 8 5" stroke="#00e5ff" strokeWidth="1.5" strokeLinecap="round" fill="none" />
                         <path d="M4 7c2 3 5 5 8 5s6-2 8-5" stroke="#00e5ff" strokeWidth="1.5" strokeLinecap="round" fill="none" opacity="0.4" />
                         <circle cx="12" cy="12" r="2" fill="#00e5ff" />
                         <circle cx="12" cy="12" r="5" stroke="#00e5ff" strokeWidth="1.5" strokeDasharray="2 3" opacity="0.35" />
                       </svg>
-                      <span className="text-lg font-semibold tracking-tight">NetSpeed</span>
-                      <span className="text-[11px] text-white/30 tracking-wider ml-auto">Browser Speed Test</span>
+                      <span className="text-base font-semibold tracking-tight">NetSpeed</span>
+                      <span className="text-[10px] text-white/30 tracking-wider ml-auto">Browser Speed Test</span>
                     </div>
                   </div>
 
-                  <div className="px-8 pb-6">
-                    <div className="flex items-center justify-center mb-4">
-                      <svg width="200" height="120" viewBox="0 0 200 120" fill="none">
-                        <path d="M20 100 A80 80 0 0 1 180 100" stroke="rgba(255,255,255,0.08)" strokeWidth="12" strokeLinecap="round" fill="none" />
-                        <path d="M20 100 A80 80 0 0 1 180 100" stroke="url(#g)" strokeWidth="12" strokeLinecap="round" fill="none" strokeDasharray={`${Math.min(testData.downloadSpeed / 100, 1) * 251} 251`} />
-                        <defs>
-                          <linearGradient id="g" x1="0" y1="0" x2="1" y2="0">
-                            <stop offset="0%" stopColor="#00e5ff" />
-                            <stop offset="100%" stopColor="#00e676" />
-                          </linearGradient>
-                        </defs>
-                      </svg>
+                  <div className="px-6 pb-4">
+                    <div className="mb-3 h-24">
+                      <SpeedGraph
+                        download={unitMbps ? testData.downloadSamples : testData.downloadSamples.map(s => s / 8)}
+                        upload={unitMbps ? testData.uploadSamples : testData.uploadSamples.map(s => s / 8)}
+                        packetLoss={testData.packetLoss}
+                        dark={true}
+                        unit={unitLabel}
+                      />
                     </div>
 
-                    <div className="text-center mb-6">
-                      <div className="text-[56px] font-bold leading-none tracking-tight text-cyan-400">
+                    <div className="text-center mb-4">
+                      <div className="text-[40px] font-bold leading-none tracking-tight text-cyan-400">
                         {unitMbps && testData.downloadSpeed >= 1000 ? (testData.downloadSpeed / 1000).toFixed(1) : fmtSpeed(unit(testData.downloadSpeed))}
-                        <span className="text-[20px] font-medium text-cyan-400/60 ml-1">{unitMbps && testData.downloadSpeed >= 1000 ? 'Gbps' : unitLabel}</span>
+                        <span className="text-[16px] font-medium text-cyan-400/60 ml-1">{unitMbps && testData.downloadSpeed >= 1000 ? 'Gbps' : unitLabel}</span>
                       </div>
-                      <div className="text-xs text-white/30 tracking-widest uppercase mt-1">Download</div>
+                      <div className="text-[10px] text-white/30 tracking-widest uppercase mt-0.5">Download</div>
                     </div>
 
-                    <div className="h-px bg-white/5 mb-6" />
+                    <div className="h-px bg-white/5 mb-4" />
 
-                    <div className="grid grid-cols-3 gap-4 text-center">
+                    <div className="grid grid-cols-3 gap-3 text-center">
                       <div>
-                        <div className="text-[22px] font-bold tracking-tight text-green-400">
+                        <div className="text-lg font-bold tracking-tight text-green-400">
                           {testData.uploadSpeed > 0 ? (unitMbps && testData.uploadSpeed >= 1000 ? (testData.uploadSpeed / 1000).toFixed(1) : fmtSpeed(unit(testData.uploadSpeed))) : '—'}
                         </div>
-                        <div className="text-[10px] text-white/30 tracking-wider uppercase mt-0.5">Upload</div>
-                        <div className="text-[11px] text-green-400/60 font-medium">{testData.uploadSpeed > 0 ? (unitMbps && testData.uploadSpeed >= 1000 ? 'Gbps' : unitLabel) : ''}</div>
+                        <div className="text-[9px] text-white/30 tracking-wider uppercase mt-0.5">Upload</div>
+                        <div className="text-[10px] text-green-400/60 font-medium">{testData.uploadSpeed > 0 ? (unitMbps && testData.uploadSpeed >= 1000 ? 'Gbps' : unitLabel) : ''}</div>
                       </div>
                       <div>
-                        <div className={`text-[22px] font-bold tracking-tight ${pingColor(testData.ping).replace('dark:', '')}`}>{testData.ping > 0 ? testData.ping.toFixed(1) : '—'}</div>
-                        <div className="text-[10px] text-white/30 tracking-wider uppercase mt-0.5">Ping</div>
-                        <div className={`text-[11px] font-medium ${pingColor(testData.ping).replace('dark:', '').replace('-400', '-400/60')}`}>ms</div>
+                        <div className={`text-lg font-bold tracking-tight ${pingColor(testData.ping).replace('dark:', '')}`}>{testData.ping > 0 ? testData.ping.toFixed(1) : '—'}</div>
+                        <div className="text-[9px] text-white/30 tracking-wider uppercase mt-0.5">Ping</div>
+                        <div className={`text-[10px] font-medium ${pingColor(testData.ping).replace('dark:', '').replace('-400', '-400/60')}`}>ms</div>
                       </div>
                       <div>
-                        <div className="text-[22px] font-bold tracking-tight text-purple-400">{testData.jitter > 0 ? testData.jitter.toFixed(1) : '—'}</div>
-                        <div className="text-[10px] text-white/30 tracking-wider uppercase mt-0.5">Jitter</div>
-                        <div className="text-[11px] text-purple-400/60 font-medium">ms</div>
+                        <div className="text-lg font-bold tracking-tight text-purple-400">{testData.jitter > 0 ? testData.jitter.toFixed(1) : '—'}</div>
+                        <div className="text-[9px] text-white/30 tracking-wider uppercase mt-0.5">Jitter</div>
+                        <div className="text-[10px] text-purple-400/60 font-medium">ms</div>
                       </div>
                     </div>
 
                     {(testData.packetLoss > 0 || testData.loadedLatency > 0) && (
                       <>
-                        <div className="h-px bg-white/5 my-4" />
-                        <div className="grid grid-cols-2 gap-4 text-center">
+                        <div className="h-px bg-white/5 my-3" />
+                        <div className="grid grid-cols-2 gap-3 text-center">
                           {testData.packetLoss > 0 && (
                             <div>
-                              <div className="text-[22px] font-bold tracking-tight text-red-400">{testData.packetLoss.toFixed(1)}%</div>
-                              <div className="text-[10px] text-white/30 tracking-wider uppercase mt-0.5">Packet Loss</div>
+                              <div className="text-lg font-bold tracking-tight text-red-400">{testData.packetLoss.toFixed(1)}%</div>
+                              <div className="text-[9px] text-white/30 tracking-wider uppercase mt-0.5">Packet Loss</div>
                             </div>
                           )}
                           {testData.loadedLatency > 0 && (
                             <div>
-                              <div className="text-[22px] font-bold tracking-tight text-orange-400">{testData.loadedLatency.toFixed(1)}</div>
-                              <div className="text-[10px] text-white/30 tracking-wider uppercase mt-0.5">Loaded Latency</div>
+                              <div className="text-lg font-bold tracking-tight text-orange-400">{testData.loadedLatency.toFixed(1)}</div>
+                              <div className="text-[9px] text-white/30 tracking-wider uppercase mt-0.5">Loaded Latency</div>
                             </div>
                           )}
                         </div>
@@ -998,27 +995,27 @@ export default function App() {
 
                     {connInfo && (
                       <>
-                        <div className="h-px bg-white/5 my-4" />
+                        <div className="h-px bg-white/5 my-3" />
                         <div className="px-0">
-                          <div className="text-[10px] text-white/20 tracking-widest uppercase mb-3">Connection Details</div>
-                          <div className="space-y-2">
+                          <div className="text-[9px] text-white/20 tracking-widest uppercase mb-2">Connection Details</div>
+                          <div className="space-y-1.5">
                             <div className="flex items-center justify-between">
-                              <span className="text-[11px] text-white/30">ISP</span>
-                              <span className="text-[11px] text-white/60 font-medium">{connInfo.isp}</span>
+                              <span className="text-[10px] text-white/30">ISP</span>
+                              <span className="text-[10px] text-white/60 font-medium truncate ml-2">{connInfo.isp}</span>
                             </div>
                             <div className="flex items-center justify-between">
-                              <span className="text-[11px] text-white/30">IP Address</span>
-                              <span className="text-[11px] text-white/60 font-medium">{sensitiveVisible ? connInfo.ip : maskIp(connInfo.ip)}</span>
+                              <span className="text-[10px] text-white/30">IP Address</span>
+                              <span className="text-[10px] text-white/60 font-medium">{sensitiveVisible ? connInfo.ip : maskIp(connInfo.ip)}</span>
                             </div>
                             {(connInfo.city || connInfo.country) && (
                               <div className="flex items-center justify-between">
-                                <span className="text-[11px] text-white/30">Location</span>
-                                <span className="text-[11px] text-white/60 font-medium">{[connInfo.city, connInfo.region, connInfo.country].filter(Boolean).join(', ')}</span>
+                                <span className="text-[10px] text-white/30">Location</span>
+                                <span className="text-[10px] text-white/60 font-medium truncate ml-2">{[connInfo.city, connInfo.region, connInfo.country].filter(Boolean).join(', ')}</span>
                               </div>
                             )}
                             <div className="flex items-center justify-between">
-                              <span className="text-[11px] text-white/30">Browser</span>
-                              <span className="text-[11px] text-white/60 font-medium">{connInfo.browser} &middot; {connInfo.platform}</span>
+                              <span className="text-[10px] text-white/30">Browser</span>
+                              <span className="text-[10px] text-white/60 font-medium">{connInfo.browser} &middot; {connInfo.platform}</span>
                             </div>
                           </div>
                         </div>
@@ -1026,7 +1023,7 @@ export default function App() {
                     )}
                   </div>
 
-                  <div className="px-8 py-4 bg-white/[0.02] space-y-2 text-[11px]">
+                  <div className="px-6 py-3 bg-white/[0.02] space-y-1 text-[10px]">
                     <div className="flex items-center justify-between">
                       <span className="text-white/30">3rd Party Provider</span>
                       <span className="text-white/70 font-medium capitalize">{providerId === 'cloudflare' ? 'Cloudflare' : providerId === 'ookla' ? 'Ookla (Speedtest)' : providerId}</span>
@@ -1043,36 +1040,30 @@ export default function App() {
               </div>
             </div>
 
-            <div className="px-5 pb-5 pt-3 flex flex-col gap-2">
-              <div className="grid grid-cols-3 gap-2">
-                <button
-                  onClick={handleCopyImage}
-                  className={`flex flex-col items-center gap-1.5 py-3 px-2 rounded-xl text-[10px] font-semibold tracking-wider transition-colors ${
-                    dark ? 'bg-white/[0.03] text-white/60 hover:bg-white/[0.06] hover:text-white/80 ring-1 ring-white/[0.06]' : 'bg-gray-50 text-gray-500 hover:bg-gray-100 hover:text-gray-700 ring-1 ring-gray-200'
-                  }`}
+            <div className="flex justify-center px-5 pb-5 pt-3">
+              <ButtonGroup size="sm" variant="tertiary">
+                <Button
+                  onPress={handleCopyImage}
+                  className={`flex-col gap-1 h-auto py-2.5 px-4 text-[10px] font-semibold tracking-wider ${dark ? 'text-white/60' : 'text-gray-500'}`}
                 >
                   <Copy size={16} />
                   {copied ? 'Copied!' : 'Copy'}
-                </button>
-                <button
-                  onClick={handleDownloadImage}
-                  className={`flex flex-col items-center gap-1.5 py-3 px-2 rounded-xl text-[10px] font-semibold tracking-wider transition-colors ${
-                    dark ? 'bg-white/[0.03] text-white/60 hover:bg-white/[0.06] hover:text-white/80 ring-1 ring-white/[0.06]' : 'bg-gray-50 text-gray-500 hover:bg-gray-100 hover:text-gray-700 ring-1 ring-gray-200'
-                  }`}
+                </Button>
+                <Button
+                  onPress={handleDownloadImage}
+                  className={`flex-col gap-1 h-auto py-2.5 px-4 text-[10px] font-semibold tracking-wider ${dark ? 'text-white/60' : 'text-gray-500'}`}
                 >
                   <Download size={16} />
                   Download
-                </button>
-                <button
-                  onClick={handleNativeShare}
-                  className={`flex flex-col items-center gap-1.5 py-3 px-2 rounded-xl text-[10px] font-semibold tracking-wider transition-colors ${
-                    dark ? 'bg-white/[0.03] text-white/60 hover:bg-white/[0.06] hover:text-white/80 ring-1 ring-white/[0.06]' : 'bg-gray-50 text-gray-500 hover:bg-gray-100 hover:text-gray-700 ring-1 ring-gray-200'
-                  }`}
+                </Button>
+                <Button
+                  onPress={handleNativeShare}
+                  className={`flex-col gap-1 h-auto py-2.5 px-4 text-[10px] font-semibold tracking-wider ${dark ? 'text-white/60' : 'text-gray-500'}`}
                 >
                   <Share2 size={16} />
                   Share
-                </button>
-              </div>
+                </Button>
+              </ButtonGroup>
             </div>
           </div>
         </div>
