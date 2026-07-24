@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Button, ButtonGroup, Card, Switch, Skeleton } from '@heroui/react';
-import { Activity, AlertTriangle, ArrowDown, ArrowUp, Clock, Download, Eye, EyeOff, Globe, GaugeIcon, Heart, Info, Monitor, Moon, Rocket, Search, Server, Settings, Share2, Sun, WifiOff, Wrench, X } from 'lucide-react';
+import { Activity, AlertTriangle, ArrowDown, ArrowUp, Clock, Download, Copy, Eye, EyeOff, Globe, GaugeIcon, Heart, Info, Monitor, Moon, Rocket, Search, Server, Settings, Share2, Sun, WifiOff, Wrench, X } from 'lucide-react';
 import { toPng } from 'html-to-image';
 import Gauge from './components/Gauge';
 import SpeedGraph from './components/SpeedGraph';
@@ -117,6 +117,8 @@ export default function App() {
   const [settings, setSettings] = useState<SpeedtestSettings>(() => loadSettings());
   const [connInfo, setConnInfo] = useState<ConnectionInfo | null>(null);
   const [copied, setCopied] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [shareImage, setShareImage] = useState<string | null>(null);
   const [sensitiveVisible, setSensitiveVisible] = useState(false);
   const [dnsInfo, setDnsInfo] = useState<DnsInfo | null>(null);
 
@@ -277,21 +279,37 @@ export default function App() {
     if (testData.phase !== 'complete' || !cardRef.current) return;
     try {
       const dataUrl = await toPng(cardRef.current, { backgroundColor: dark ? '#0a0a0f' : '#f9fafb' });
-      const blob = await (await fetch(dataUrl)).blob();
-      try {
-        await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
-      } catch {
-        const a = document.createElement('a');
-        a.href = dataUrl;
-        a.download = `netspeed-${Date.now()}.png`;
-        a.click();
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
-      }
+      setShareImage(dataUrl);
+      setShowShareModal(true);
     } catch {}
   }, [testData, dark]);
+
+  const handleCopyImage = useCallback(async () => {
+    if (!shareImage) return;
+    try {
+      const blob = await (await fetch(shareImage)).blob();
+      await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {}
+  }, [shareImage]);
+
+  const handleDownloadImage = useCallback(() => {
+    if (!shareImage) return;
+    const a = document.createElement('a');
+    a.href = shareImage;
+    a.download = `netspeed-${Date.now()}.png`;
+    a.click();
+  }, [shareImage]);
+
+  const handleNativeShare = useCallback(async () => {
+    if (!shareImage) return;
+    try {
+      const blob = await (await fetch(shareImage)).blob();
+      const file = new File([blob], `netspeed-${Date.now()}.png`, { type: 'image/png' });
+      await navigator.share({ title: 'NetSpeed Results', files: [file] });
+    } catch {}
+  }, [shareImage]);
 
   const SettingField = ({ label, key, suffix, placeholder }: {
     label: string; key: keyof SpeedtestSettings; suffix?: string; placeholder?: string;
@@ -752,7 +770,7 @@ export default function App() {
                         }`}
                       >
                         <Share2 size={13} strokeWidth={2.5} />
-                        {copied ? 'Copied to Clipboard' : 'Share Results'}
+                        Share Results
                       </button>
                     </div>
                   )}
@@ -839,6 +857,61 @@ export default function App() {
         <footer className={`w-full text-center text-[10px] sm:text-xs ${dark ? 'text-white/15' : 'text-gray-400'}`}>
           NetSpeed &copy; {new Date().getFullYear()} &mdash; built by <a href="https://github.com/itsmeadarsh2008" target="_blank" rel="noopener noreferrer" className={`underline underline-offset-2 ${dark ? 'text-white/25 hover:text-white/50' : 'text-gray-500 hover:text-gray-700'}`}>Adarsh Gourab Mahalik</a>
         </footer>
+
+      {showShareModal && shareImage && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setShowShareModal(false)}>
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+          <div
+            className={`relative z-10 w-full max-w-lg rounded-2xl overflow-hidden shadow-2xl ${dark ? 'bg-[#16161e] ring-1 ring-white/[0.06]' : 'bg-white ring-1 ring-gray-200'}`}
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between px-5 py-4">
+              <h2 className={`text-sm font-semibold ${dark ? 'text-white' : 'text-gray-900'}`}>Share Results</h2>
+              <button onClick={() => setShowShareModal(false)} className={`p-1 rounded-lg transition-colors ${dark ? 'text-white/30 hover:text-white/60 hover:bg-white/8' : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'}`}>
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="px-5 pb-2">
+              <div className={`rounded-xl overflow-hidden ${dark ? 'ring-1 ring-white/[0.06]' : 'ring-1 ring-gray-200'}`}>
+                <img src={shareImage} alt="Speed test results" className="w-full h-auto" />
+              </div>
+            </div>
+
+            <div className="px-5 pb-5 pt-3 flex flex-col gap-2">
+              <div className="grid grid-cols-3 gap-2">
+                <button
+                  onClick={handleCopyImage}
+                  className={`flex flex-col items-center gap-1.5 py-3 px-2 rounded-xl text-[10px] font-semibold tracking-wider transition-colors ${
+                    dark ? 'bg-white/[0.03] text-white/60 hover:bg-white/[0.06] hover:text-white/80 ring-1 ring-white/[0.06]' : 'bg-gray-50 text-gray-500 hover:bg-gray-100 hover:text-gray-700 ring-1 ring-gray-200'
+                  }`}
+                >
+                  <Copy size={16} />
+                  {copied ? 'Copied!' : 'Copy'}
+                </button>
+                <button
+                  onClick={handleDownloadImage}
+                  className={`flex flex-col items-center gap-1.5 py-3 px-2 rounded-xl text-[10px] font-semibold tracking-wider transition-colors ${
+                    dark ? 'bg-white/[0.03] text-white/60 hover:bg-white/[0.06] hover:text-white/80 ring-1 ring-white/[0.06]' : 'bg-gray-50 text-gray-500 hover:bg-gray-100 hover:text-gray-700 ring-1 ring-gray-200'
+                  }`}
+                >
+                  <Download size={16} />
+                  Download
+                </button>
+                <button
+                  onClick={handleNativeShare}
+                  className={`flex flex-col items-center gap-1.5 py-3 px-2 rounded-xl text-[10px] font-semibold tracking-wider transition-colors ${
+                    dark ? 'bg-white/[0.03] text-white/60 hover:bg-white/[0.06] hover:text-white/80 ring-1 ring-white/[0.06]' : 'bg-gray-50 text-gray-500 hover:bg-gray-100 hover:text-gray-700 ring-1 ring-gray-200'
+                  }`}
+                >
+                  <Share2 size={16} />
+                  Share
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       </main>
     </div>
   );
